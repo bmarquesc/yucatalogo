@@ -24,7 +24,6 @@ const emptyForm = {
   nome: "",
   tipoId: "",
   tema: "",
-  emoji: "🎉",
   canvaUrl: "",
   linkPublicado: ""
 };
@@ -109,8 +108,11 @@ export function CatalogoClient() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          ...form,
+          nome: form.nome,
           tipoId: form.tipoId || null,
+          tema: form.tema,
+          canvaUrl: form.canvaUrl,
+          linkPublicado: form.linkPublicado,
           midias: [...imageUploads, ...videoUploads]
         })
       });
@@ -199,7 +201,7 @@ export function CatalogoClient() {
                 <div
                   style={{
                     alignItems: "center",
-                    aspectRatio: "4 / 3",
+                    aspectRatio: "9 / 16",
                     background: "#F0E8D8",
                     display: "grid",
                     marginBottom: 14,
@@ -210,7 +212,14 @@ export function CatalogoClient() {
                   {cover ? (
                     <MediaPreview media={cover} label={arte.nome} />
                   ) : (
-                    <span style={{ fontSize: 42 }}>{arte.emoji || "🎉"}</span>
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        background: "#E9E5DD",
+                        height: "100%",
+                        width: "100%"
+                      }}
+                    />
                   )}
                 </div>
                 <div style={{ display: "grid", gap: 8 }}>
@@ -289,33 +298,21 @@ export function CatalogoClient() {
               />
             </label>
 
-            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
-              <label className="field">
-                <span className="form-label">Tipo</span>
-                <select
-                  className="select"
-                  onChange={(event) =>
-                    setForm({ ...form, tipoId: event.target.value })
-                  }
-                  value={form.tipoId}
-                >
-                  <option value="">Sem tipo</option>
-                  {tipos.map((tipo) => (
-                    <option key={tipo.id} value={tipo.id}>
-                      {tipo.nomePublico}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span className="form-label">Emoji</span>
-                <input
-                  className="input"
-                  onChange={(event) => setForm({ ...form, emoji: event.target.value })}
-                  value={form.emoji}
-                />
-              </label>
-            </div>
+            <label className="field">
+              <span className="form-label">Tipo</span>
+              <select
+                className="select"
+                onChange={(event) => setForm({ ...form, tipoId: event.target.value })}
+                value={form.tipoId}
+              >
+                <option value="">Sem tipo</option>
+                {tipos.map((tipo) => (
+                  <option key={tipo.id} value={tipo.id}>
+                    {tipo.nomePublico}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <label className="field">
               <span className="form-label">Tema</span>

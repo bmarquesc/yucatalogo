@@ -10,7 +10,6 @@ const emptyTipo = {
   nome: "",
   nomePublico: "",
   descricaoPublica: "",
-  emoji: "🎉",
   modoDisplay: "demonstracao" as ModoDisplay
 };
 
@@ -51,7 +50,13 @@ export function FiltrosClient() {
     const response = await fetch(`/api/tipos/${tipo.id}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(tipo)
+      body: JSON.stringify({
+        nome: tipo.nome,
+        nomePublico: tipo.nomePublico,
+        descricaoPublica: tipo.descricaoPublica,
+        modoDisplay: tipo.modoDisplay,
+        ordem: tipo.ordem
+      })
     });
     setSavingId(null);
 
@@ -107,8 +112,10 @@ export function FiltrosClient() {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        ...newTipo,
         nome: newTipo.nome || newTipo.nomePublico,
+        nomePublico: newTipo.nomePublico,
+        descricaoPublica: newTipo.descricaoPublica,
+        modoDisplay: newTipo.modoDisplay,
         ordem: tipos.length
       })
     });
@@ -136,29 +143,17 @@ export function FiltrosClient() {
       </header>
 
       <form className="panel-card grid-panel" onSubmit={createTipo}>
-        <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
-          <label className="field">
-            <span className="form-label">Nome público</span>
-            <input
-              className="input"
-              onChange={(event) =>
-                setNewTipo({ ...newTipo, nomePublico: event.target.value })
-              }
-              required
-              value={newTipo.nomePublico}
-            />
-          </label>
-          <label className="field">
-            <span className="form-label">Emoji</span>
-            <input
-              className="input"
-              onChange={(event) =>
-                setNewTipo({ ...newTipo, emoji: event.target.value })
-              }
-              value={newTipo.emoji}
-            />
-          </label>
-        </div>
+        <label className="field">
+          <span className="form-label">Nome público</span>
+          <input
+            className="input"
+            onChange={(event) =>
+              setNewTipo({ ...newTipo, nomePublico: event.target.value })
+            }
+            required
+            value={newTipo.nomePublico}
+          />
+        </label>
         <label className="field">
           <span className="form-label">Descrição pública</span>
           <input
@@ -204,19 +199,9 @@ export function FiltrosClient() {
                 style={{
                   display: "grid",
                   gap: 12,
-                  gridTemplateColumns: "80px 1fr 1fr"
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))"
                 }}
               >
-                <label className="field">
-                  <span className="form-label">Emoji</span>
-                  <input
-                    className="input"
-                    onChange={(event) =>
-                      updateLocal(tipo.id, { emoji: event.target.value })
-                    }
-                    value={tipo.emoji || ""}
-                  />
-                </label>
                 <label className="field">
                   <span className="form-label">Nome interno</span>
                   <input

@@ -135,7 +135,6 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
             style={tabStyle(activeTipo === tipo.id)}
             type="button"
           >
-            {tipo.emoji ? `${tipo.emoji} ` : ""}
             {tipo.nomePublico}
           </button>
         ))}
@@ -191,7 +190,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
                   key={arte.id}
                   onClick={() => setSelectedArte(arte)}
                   style={{
-                    aspectRatio: "4 / 5",
+                    aspectRatio: "9 / 16",
                     background: "var(--brand-accent)",
                     border: 0,
                     color: "#fff",
@@ -206,7 +205,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
                   {cover ? (
                     <ShowroomMedia media={cover} label={arte.nome} />
                   ) : (
-                    <span>{arte.emoji || "🎉"}</span>
+                    <ShowroomPlaceholder />
                   )}
                 </button>
               );
@@ -332,6 +331,7 @@ function ShowroomModal({
           onTouchStart={(event) => setTouchStart(event.touches[0].clientX)}
           style={{
             alignItems: "center",
+            aspectRatio: "9 / 16",
             background: "#0D0D0D",
             display: "grid",
             minHeight: 420,
@@ -343,7 +343,7 @@ function ShowroomModal({
           {currentSlide ? (
             <ShowroomMedia media={currentSlide} label={arte.nome} contained />
           ) : (
-            <span style={{ color: "#fff", fontSize: 70 }}>{arte.emoji || "🎉"}</span>
+            <ShowroomPlaceholder contained />
           )}
 
           {slides.length > 1 ? (
@@ -560,6 +560,20 @@ function ShowroomMedia({
   }
 
   return <img alt={label} src={media.url} style={style} />;
+}
+
+function ShowroomPlaceholder({ contained = false }: { contained?: boolean }) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        background: "#ECEAE5",
+        borderRadius: contained ? 6 : 0,
+        height: contained ? "min(70%, 420px)" : "100%",
+        width: contained ? "min(70%, 420px)" : "100%"
+      }}
+    />
+  );
 }
 
 function tabStyle(active: boolean): CSSProperties {
