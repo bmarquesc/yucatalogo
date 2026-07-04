@@ -294,7 +294,7 @@ function ShowroomModal({
       `*Arte:* ${arte.nome}${tipo}`,
       ...campos
         .filter((campo) => values[campo.id])
-        .map((campo) => `*${campo.label}:* ${values[campo.id]}`)
+        .map((campo) => `*${campo.label}:* ${formatCampoValue(campo, values[campo.id])}`)
     ];
 
     window.open(buildWhatsAppUrl(whatsapp, lines.join("\n")), "_blank", "noopener");
@@ -641,4 +641,16 @@ function inputType(tipo: CatalogCampo["tipo"]) {
   }
 
   return "text";
+}
+
+function formatCampoValue(campo: CatalogCampo, value: string) {
+  if (campo.tipo !== "data") {
+    return value;
+  }
+
+  return new Date(`${value}T12:00`).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  });
 }
