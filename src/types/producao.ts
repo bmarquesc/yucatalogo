@@ -5,7 +5,7 @@ export type ProducaoPedido = {
   arteNome: string | null;
   arteTema: string | null;
   tipoNomePublico: string | null;
-  linkPublicado: string | null;
+  canvaUrl: string | null;
   midiaUrl: string | null;
   dataPedido: string | null;
   dataEntrega: string | null;

@@ -372,6 +372,86 @@ button {
   top: 6px;
 }
 
+.arte-search-panel,
+.arte-linked-card {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+
+.arte-search-panel {
+  background: #fff;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.arte-search-header {
+  align-items: center;
+  color: var(--mid);
+  display: flex;
+  font-size: 13px;
+  justify-content: space-between;
+}
+
+.arte-search-results {
+  display: grid;
+  gap: 8px;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.arte-search-option {
+  background: var(--cream);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--black);
+  display: grid;
+  gap: 5px;
+  min-height: 64px;
+  padding: 10px;
+  text-align: left;
+}
+
+.arte-search-option:hover {
+  border-color: var(--gold);
+}
+
+.arte-search-option strong,
+.arte-linked-card strong {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.arte-search-option span,
+.arte-linked-card span,
+.arte-search-empty {
+  color: var(--mid);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.arte-search-empty {
+  background: var(--cream);
+  border-radius: 4px;
+  padding: 14px;
+  text-align: center;
+}
+
+.arte-linked-card {
+  align-items: center;
+  background: color-mix(in srgb, var(--gold-pale), transparent 34%);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.arte-linked-card > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
 .public-shell {
   background: #fff;
   color: var(--brand-primary, #0d0d0d);
@@ -1072,5 +1152,10 @@ button {
 
   .page-title {
     font-size: 36px;
+  }
+
+  .arte-linked-card {
+    align-items: stretch;
+    display: grid;
   }
 }

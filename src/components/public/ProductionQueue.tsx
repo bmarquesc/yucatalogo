@@ -181,15 +181,15 @@ function ProductionCard({ pedido }: { pedido: ProducaoPedido }) {
           <p className="production-notes">{pedido.observacoes}</p>
         ) : null}
 
-        {pedido.linkPublicado ? (
+        {pedido.canvaUrl ? (
           <a
             className="production-link"
-            href={pedido.linkPublicado}
+            href={pedido.canvaUrl}
             rel="noreferrer"
             target="_blank"
           >
             <ExternalLink size={16} aria-hidden="true" />
-            Abrir convite
+            Abrir no Canva
           </a>
         ) : null}
       </div>

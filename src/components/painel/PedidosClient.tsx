@@ -60,12 +60,16 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
   const [pedidoForm, setPedidoForm] = useState(emptyPedido);
   const [gastoForm, setGastoForm] = useState(emptyGasto);
   const [arteSearch, setArteSearch] = useState("");
+  const selectedArte = useMemo(
+    () => artes.find((arte) => arte.id === pedidoForm.arteId) ?? null,
+    [artes, pedidoForm.arteId]
+  );
 
   const filteredArtes = useMemo(() => {
     const term = normalizeSearch(arteSearch);
 
     if (!term) {
-      return artes;
+      return [];
     }
 
     return artes.filter((arte) =>
@@ -76,19 +80,6 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
       ).includes(term)
     );
   }, [artes, arteSearch]);
-
-  const arteOptions = useMemo(() => {
-    const selectedArte = artes.find((arte) => arte.id === pedidoForm.arteId);
-
-    if (
-      selectedArte &&
-      !filteredArtes.some((arte) => arte.id === selectedArte.id)
-    ) {
-      return [selectedArte, ...filteredArtes];
-    }
-
-    return filteredArtes;
-  }, [artes, filteredArtes, pedidoForm.arteId]);
 
   const proximasEntregas = useMemo(() => {
     const pedidos = caixa?.pedidos ?? [];
@@ -128,6 +119,18 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
       ...current,
       arteId,
       arteNome: arte?.nome || current.arteNome
+    }));
+
+    if (arte) {
+      setArteSearch("");
+    }
+  }
+
+  function clearArte() {
+    setPedidoForm((current) => ({
+      ...current,
+      arteId: "",
+      arteNome: ""
     }));
   }
 
@@ -523,27 +526,69 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
               </div>
             </label>
 
-            <label className="field">
-              <span className="form-label">Arte</span>
-              <select
-                className="select"
-                onChange={(event) => selectArte(event.target.value)}
-                value={pedidoForm.arteId}
-              >
-                <option value="">Sem arte vinculada</option>
-                {arteOptions.map((arte) => (
-                  <option key={arte.id} value={arte.id}>
-                    {arte.nome}
-                    {arte.tema ? ` · ${arte.tema}` : ""}
-                  </option>
-                ))}
-              </select>
-              <span style={{ color: "var(--mid)", fontSize: 13 }}>
-                {filteredArtes.length} convite
-                {filteredArtes.length === 1 ? "" : "s"} encontrado
-                {filteredArtes.length === 1 ? "" : "s"}
-              </span>
-            </label>
+            {arteSearch.trim() ? (
+              <div className="arte-search-panel">
+                <div className="arte-search-header">
+                  <span className="form-label">Resultados</span>
+                  <span>
+                    {filteredArtes.length} convite
+                    {filteredArtes.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                {filteredArtes.length ? (
+                  <div className="arte-search-results">
+                    {filteredArtes.map((arte) => (
+                      <button
+                        className="arte-search-option"
+                        key={arte.id}
+                        onClick={() => selectArte(arte.id)}
+                        type="button"
+                      >
+                        <strong>{arte.nome}</strong>
+                        <span>
+                          {arte.tema || "Sem tema"}
+                          {arte.tipo?.nomePublico
+                            ? ` · ${arte.tipo.nomePublico}`
+                            : ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="arte-search-empty">
+                    Nenhum convite encontrado com essa busca.
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            <div className="arte-linked-card">
+              <div>
+                <span className="form-label">Arte vinculada</span>
+                {selectedArte ? (
+                  <>
+                    <strong>{selectedArte.nome}</strong>
+                    <span>
+                      {selectedArte.tema || "Sem tema"}
+                      {selectedArte.tipo?.nomePublico
+                        ? ` · ${selectedArte.tipo.nomePublico}`
+                        : ""}
+                    </span>
+                  </>
+                ) : (
+                  <span>Nenhum convite selecionado.</span>
+                )}
+              </div>
+              {selectedArte ? (
+                <button
+                  className="button secondary"
+                  onClick={clearArte}
+                  type="button"
+                >
+                  Remover
+                </button>
+              ) : null}
+            </div>
 
             <label className="field">
               <span className="form-label">Nome da arte ou serviço</span>

@@ -309,7 +309,7 @@ export async function getProducaoForTag(
         arteNome: pedido.arteNome || arte?.nome || null,
         arteTema: arte?.tema ?? null,
         tipoNomePublico: tipo?.nomePublico ?? null,
-        linkPublicado: arte?.linkPublicado ?? null,
+        canvaUrl: arte?.canvaUrl ?? null,
         midiaUrl: cover?.url ?? null,
         dataPedido: pedido.dataPedido,
         dataEntrega: pedido.dataEntrega,
