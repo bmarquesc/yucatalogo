@@ -1,6 +1,14 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, ExternalLink, MessageCircle, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Maximize2,
+  MessageCircle,
+  Search,
+  X
+} from "lucide-react";
 import {
   FormEvent,
   TouchEvent,
@@ -28,17 +36,20 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
         ? catalog.artes
         : catalog.artes.filter((arte) => arte.tipoId === activeTipo);
 
-    if (activeTipoData?.modoDisplay !== "busca" || !search.trim()) {
+    const term = normalizeCatalogSearch(search);
+
+    if (!term) {
       return byTipo;
     }
 
-    const term = search.toLowerCase();
-    return byTipo.filter(
-      (arte) =>
-        arte.nome.toLowerCase().includes(term) ||
-        arte.tema?.toLowerCase().includes(term)
+    return byTipo.filter((arte) =>
+      normalizeCatalogSearch(
+        [arte.nome, arte.tema, arte.tipo?.nomePublico, arte.tipo?.nome]
+          .filter(Boolean)
+          .join(" ")
+      ).includes(term)
     );
-  }, [activeTipo, activeTipoData?.modoDisplay, catalog.artes, search]);
+  }, [activeTipo, catalog.artes, search]);
 
   const selectedFont = getCatalogFontOption(catalog.conviteira.fonteCatalogo);
   const shellStyle = {
@@ -99,10 +110,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
             className="public-tab"
             data-active={activeTipo === tipo.id}
             key={tipo.id}
-            onClick={() => {
-              setActiveTipo(tipo.id);
-              setSearch("");
-            }}
+            onClick={() => setActiveTipo(tipo.id)}
             type="button"
           >
             {tipo.nomePublico}
@@ -120,14 +128,21 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
           </p>
         ) : null}
 
-        {activeTipoData?.modoDisplay === "busca" ? (
-          <input
-            aria-label="Buscar convite"
-            className="public-search"
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar por nome ou tema"
-            value={search}
-          />
+        {catalog.artes.length ? (
+          <label className="public-search-wrap">
+            <Search
+              aria-hidden="true"
+              className="public-search-icon"
+              size={17}
+            />
+            <input
+              aria-label="Buscar convite"
+              className="public-search"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar por tema, nome ou tipo"
+              value={search}
+            />
+          </label>
         ) : null}
 
         {filteredArtes.length ? (
@@ -188,6 +203,7 @@ function ShowroomModal({
 }) {
   const [slide, setSlide] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [expandedSlide, setExpandedSlide] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const slides = arte.midias;
@@ -195,6 +211,7 @@ function ShowroomModal({
 
   useEffect(() => {
     setSlide(0);
+    setExpandedSlide(null);
     setFormOpen(false);
     setValues({});
   }, [arte.id]);
@@ -253,10 +270,30 @@ function ShowroomModal({
           onTouchStart={(event) => setTouchStart(event.touches[0].clientX)}
         >
           {currentSlide ? (
-            <ShowroomMedia media={currentSlide} label={arte.nome} contained />
+            <ShowroomMedia
+              contained
+              label={arte.nome}
+              media={currentSlide}
+              onOpen={
+                currentSlide.tipo === "imagem"
+                  ? () => setExpandedSlide(slide)
+                  : undefined
+              }
+            />
           ) : (
             <ShowroomPlaceholder contained />
           )}
+
+          {currentSlide ? (
+            <button
+              aria-label="Expandir mídia"
+              className="showroom-media-expand"
+              onClick={() => setExpandedSlide(slide)}
+              type="button"
+            >
+              <Maximize2 size={18} aria-hidden="true" />
+            </button>
+          ) : null}
 
           {slides.length > 1 ? (
             <>
@@ -356,6 +393,142 @@ function ShowroomModal({
           ) : null}
         </div>
       </section>
+
+      {expandedSlide !== null && slides.length ? (
+        <ExpandedShowroomMedia
+          initialSlide={expandedSlide}
+          label={arte.nome}
+          onClose={() => setExpandedSlide(null)}
+          slides={slides}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ExpandedShowroomMedia({
+  initialSlide,
+  label,
+  onClose,
+  slides
+}: {
+  initialSlide: number;
+  label: string;
+  onClose: () => void;
+  slides: PublicCatalog["artes"][number]["midias"];
+}) {
+  const [slide, setSlide] = useState(initialSlide);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const currentSlide = slides[slide];
+
+  useEffect(() => {
+    setSlide(initialSlide);
+  }, [initialSlide]);
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [onClose]);
+
+  function move(direction: -1 | 1) {
+    setSlide((current) => (current + direction + slides.length) % slides.length);
+  }
+
+  function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
+    if (touchStart === null) {
+      return;
+    }
+
+    const delta = event.changedTouches[0].clientX - touchStart;
+    if (Math.abs(delta) > 40) {
+      move(delta > 0 ? -1 : 1);
+    }
+    setTouchStart(null);
+  }
+
+  return (
+    <div
+      className="showroom-lightbox"
+      onMouseDown={onClose}
+      role="presentation"
+    >
+      <div
+        className="showroom-lightbox-header"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <span>
+          {slide + 1} / {slides.length}
+        </span>
+        <button
+          aria-label="Fechar mídia expandida"
+          className="showroom-lightbox-close"
+          onClick={onClose}
+          type="button"
+        >
+          <X size={20} aria-hidden="true" />
+        </button>
+      </div>
+
+      <div
+        className="showroom-lightbox-stage"
+        onMouseDown={(event) => event.stopPropagation()}
+        onTouchEnd={handleTouchEnd}
+        onTouchStart={(event) => setTouchStart(event.touches[0].clientX)}
+      >
+        {currentSlide ? (
+          <ShowroomMedia contained label={label} media={currentSlide} />
+        ) : (
+          <ShowroomPlaceholder contained />
+        )}
+
+        {slides.length > 1 ? (
+          <>
+            <button
+              aria-label="Slide anterior"
+              className="carousel-button carousel-button-left"
+              onClick={() => move(-1)}
+              type="button"
+            >
+              <ChevronLeft size={24} aria-hidden="true" />
+            </button>
+            <button
+              aria-label="Próximo slide"
+              className="carousel-button carousel-button-right"
+              onClick={() => move(1)}
+              type="button"
+            >
+              <ChevronRight size={24} aria-hidden="true" />
+            </button>
+          </>
+        ) : null}
+      </div>
+
+      {slides.length > 1 ? (
+        <div
+          className="showroom-lightbox-dots"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          {slides.map((media, index) => (
+            <button
+              aria-label={`Ir para slide ${index + 1}`}
+              className="showroom-dot"
+              data-active={index === slide}
+              key={media.id}
+              onClick={() => setSlide(index)}
+              type="button"
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -405,15 +578,18 @@ function PublicField({
 }
 
 function ShowroomMedia({
+  contained = false,
   media,
   label,
-  contained = false
+  onOpen
 }: {
+  contained?: boolean;
   media: PublicCatalog["artes"][number]["midias"][number];
   label: string;
-  contained?: boolean;
+  onOpen?: () => void;
 }) {
   const style = {
+    cursor: onOpen ? "zoom-in" : undefined,
     height: "100%",
     objectFit: contained ? "contain" : "cover",
     width: "100%"
@@ -423,7 +599,7 @@ function ShowroomMedia({
     return <video controls={contained} playsInline src={media.url} style={style} />;
   }
 
-  return <img alt={label} src={media.url} style={style} />;
+  return <img alt={label} onClick={onOpen} src={media.url} style={style} />;
 }
 
 function ShowroomPlaceholder({ contained = false }: { contained?: boolean }) {
@@ -468,4 +644,12 @@ function formatCampoValue(campo: CatalogCampo, value: string) {
     month: "2-digit",
     year: "numeric"
   });
+}
+
+function normalizeCatalogSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
