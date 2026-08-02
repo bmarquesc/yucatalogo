@@ -894,6 +894,7 @@ button {
   gap: 14px;
   grid-auto-columns: minmax(280px, 340px);
   grid-auto-flow: column;
+  min-height: 0;
   overflow-x: auto;
   padding-bottom: 8px;
   scroll-snap-type: x proximity;
@@ -905,8 +906,10 @@ button {
   border-radius: 6px;
   display: grid;
   gap: 10px;
-  max-height: calc(100vh - 220px);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: clamp(420px, calc(100dvh - 220px), 680px);
   min-height: 220px;
+  overflow: hidden;
   padding: 10px;
   scroll-snap-align: start;
 }
@@ -939,18 +942,41 @@ button {
 }
 
 .production-column-cards {
+  align-content: start;
   display: grid;
   gap: 10px;
+  min-height: 0;
+  overscroll-behavior: contain;
   overflow-y: auto;
   padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.production-column-cards::-webkit-scrollbar {
+  width: 8px;
+}
+
+.production-column-cards::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--brand-primary, #0d0d0d), transparent 82%);
+  border-radius: 999px;
 }
 
 .production-card {
   background: #fff;
   border: 1px solid var(--rule);
   border-radius: 6px;
+  cursor: pointer;
   display: grid;
   overflow: hidden;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.production-card:hover,
+.production-card:focus-visible {
+  border-color: color-mix(in srgb, var(--brand-primary, #0d0d0d), transparent 62%);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  outline: none;
+  transform: translateY(-1px);
 }
 
 .production-thumb {
@@ -959,6 +985,12 @@ button {
   height: 100%;
   object-fit: cover;
   width: 100%;
+}
+
+.production-card-preview .production-thumb {
+  aspect-ratio: 16 / 10;
+  max-height: 210px;
+  object-position: center top;
 }
 
 .production-thumb-empty {
@@ -972,8 +1004,8 @@ button {
 
 .production-card-body {
   display: grid;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 12px;
 }
 
 .production-card-top {
@@ -1023,9 +1055,13 @@ button {
   padding: 0 10px;
 }
 
+.production-card-controls {
+  cursor: default;
+}
+
 .production-card h3 {
   font-family: Poppins, ui-sans-serif, system-ui, sans-serif;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
   line-height: 1.1;
   margin: 0;
@@ -1040,6 +1076,36 @@ button {
 
 .production-art-name {
   font-weight: 700;
+}
+
+.production-preview-meta {
+  color: color-mix(in srgb, var(--brand-primary, #0d0d0d), transparent 36%);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.production-preview-meta span {
+  background: var(--cream);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.production-preview-notes {
+  background: var(--cream);
+  border-radius: 4px;
+  color: color-mix(in srgb, var(--brand-primary, #0d0d0d), transparent 24%);
+  display: -webkit-box;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+  overflow: hidden;
+  padding: 9px;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .production-details {
@@ -1087,6 +1153,97 @@ button {
   border: 1px solid rgba(0, 0, 0, 0.14);
   color: var(--brand-primary, #0d0d0d);
   justify-self: start;
+}
+
+.production-modal-backdrop {
+  background: rgba(13, 13, 13, 0.48);
+  display: grid;
+  inset: 0;
+  padding: 16px;
+  place-items: center;
+  position: fixed;
+  z-index: 80;
+}
+
+.production-modal {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: min(92dvh, 820px);
+  overflow: hidden;
+  width: min(100%, 920px);
+}
+
+.production-modal-header {
+  align-items: start;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.production-modal-kicker {
+  color: color-mix(in srgb, var(--brand-primary, #0d0d0d), transparent 42%);
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.production-modal-header h2 {
+  font-family: Poppins, ui-sans-serif, system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.production-modal-close {
+  align-items: center;
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--brand-primary, #0d0d0d);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.production-modal-content {
+  display: grid;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.production-modal-media {
+  aspect-ratio: 4 / 5;
+  background: color-mix(in srgb, var(--brand-accent, #c9a96e), transparent 70%);
+  border-radius: 6px;
+  max-height: 520px;
+  object-fit: cover;
+  object-position: center top;
+  width: 100%;
+}
+
+.production-modal-main {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+}
+
+.production-modal-status-row {
+  align-items: end;
+}
+
+.production-modal-art {
+  font-size: 20px;
 }
 
 .production-empty {
@@ -1154,6 +1311,21 @@ button {
 
   .production-board {
     grid-auto-columns: minmax(310px, 360px);
+  }
+
+  .production-modal-header {
+    padding: 20px;
+  }
+
+  .production-modal-content {
+    align-items: start;
+    grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+    padding: 20px;
+  }
+
+  .production-modal-media {
+    position: sticky;
+    top: 0;
   }
 }
 

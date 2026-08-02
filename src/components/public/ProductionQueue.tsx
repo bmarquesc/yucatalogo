@@ -1,7 +1,13 @@
 "use client";
 
-import { CalendarDays, ExternalLink, Loader2, Search } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { CalendarDays, ExternalLink, Loader2, Search, X } from "lucide-react";
+import {
+  FormEvent,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties
+} from "react";
 
 import type {
   ProducaoData,
@@ -30,6 +36,7 @@ export function ProductionQueue({
   const [grupos, setGrupos] = useState<ProducaoGrupo[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingStatusId, setSavingStatusId] = useState<string | null>(null);
+  const [selectedPedido, setSelectedPedido] = useState<ProducaoPedido | null>(null);
   const [message, setMessage] = useState("");
 
   const totalPedidos = useMemo(
@@ -45,6 +52,28 @@ export function ProductionQueue({
   useEffect(() => {
     void loadBoard(initialTag);
   }, [initialTag]);
+
+  useEffect(() => {
+    if (!selectedPedido) {
+      return;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSelectedPedido(null);
+      }
+    }
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [selectedPedido]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,7 +118,10 @@ export function ProductionQueue({
     window.history.replaceState(null, "", url);
   }
 
-  async function updateStatus(pedido: ProducaoPedido, statusProducao: StatusProducao) {
+  async function updateStatus(
+    pedido: ProducaoPedido,
+    statusProducao: StatusProducao
+  ) {
     setSavingStatusId(pedido.id);
     const response = await fetch(
       `/api/producao/${conviteira.slug}/pedidos/${pedido.id}`,
@@ -113,6 +145,9 @@ export function ProductionQueue({
           item.id === pedido.id ? { ...item, statusProducao } : item
         )
       }))
+    );
+    setSelectedPedido((current) =>
+      current?.id === pedido.id ? { ...current, statusProducao } : current
     );
   }
 
@@ -182,6 +217,7 @@ export function ProductionQueue({
                   {grupo.pedidos.map((pedido) => (
                     <ProductionCard
                       key={pedido.id}
+                      onOpen={setSelectedPedido}
                       onStatusChange={updateStatus}
                       pedido={pedido}
                       saving={savingStatusId === pedido.id}
@@ -197,15 +233,26 @@ export function ProductionQueue({
           <div className="production-empty">Nenhuma demanda encontrada.</div>
         ) : null}
       </section>
+
+      {selectedPedido ? (
+        <ProductionDetailsModal
+          onClose={() => setSelectedPedido(null)}
+          onStatusChange={updateStatus}
+          pedido={selectedPedido}
+          saving={savingStatusId === selectedPedido.id}
+        />
+      ) : null}
     </main>
   );
 }
 
 function ProductionCard({
+  onOpen,
   onStatusChange,
   pedido,
   saving
 }: {
+  onOpen: (pedido: ProducaoPedido) => void;
   onStatusChange: (pedido: ProducaoPedido, status: StatusProducao) => void;
   pedido: ProducaoPedido;
   saving: boolean;
@@ -213,7 +260,19 @@ function ProductionCard({
   const status = normalizeStatusProducao(pedido.statusProducao);
 
   return (
-    <article className="production-card">
+    <article
+      aria-label={`Abrir demanda de ${pedido.clienteNome}`}
+      className="production-card production-card-preview"
+      onClick={() => onOpen(pedido)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen(pedido);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+    >
       {pedido.midiaUrl ? (
         <img alt="" className="production-thumb" src={pedido.midiaUrl} />
       ) : (
@@ -221,7 +280,11 @@ function ProductionCard({
       )}
 
       <div className="production-card-body">
-        <div className="production-card-top">
+        <div
+          className="production-card-top production-card-controls"
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
           <label className="production-status-field">
             <span>Status</span>
             <select
@@ -250,45 +313,141 @@ function ProductionCard({
           {pedido.arteNome || "Convite não informado"}
         </p>
 
-        <dl className="production-details">
-          {pedido.tipoNomePublico ? (
-            <>
-              <dt>Tipo</dt>
-              <dd>{pedido.tipoNomePublico}</dd>
-            </>
-          ) : null}
-
-          {pedido.arteTema ? (
-            <>
-              <dt>Tema</dt>
-              <dd>{pedido.arteTema}</dd>
-            </>
-          ) : null}
-
-          <dt>Pedido</dt>
-          <dd>{formatDate(pedido.dataPedido)}</dd>
-        </dl>
+        <div className="production-preview-meta">
+          {pedido.tipoNomePublico ? <span>{pedido.tipoNomePublico}</span> : null}
+          {pedido.arteTema ? <span>{pedido.arteTema}</span> : null}
+          <span>Pedido {formatDate(pedido.dataPedido)}</span>
+        </div>
 
         {pedido.observacoes ? (
-          <div className="production-notes">
-            <span>Observações</span>
-            <p>{pedido.observacoes}</p>
-          </div>
-        ) : null}
-
-        {pedido.canvaUrl ? (
-          <a
-            className="production-link"
-            href={pedido.canvaUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <ExternalLink size={16} aria-hidden="true" />
-            Abrir no Canva
-          </a>
+          <p className="production-preview-notes">{pedido.observacoes}</p>
         ) : null}
       </div>
     </article>
+  );
+}
+
+function ProductionDetailsModal({
+  onClose,
+  onStatusChange,
+  pedido,
+  saving
+}: {
+  onClose: () => void;
+  onStatusChange: (pedido: ProducaoPedido, status: StatusProducao) => void;
+  pedido: ProducaoPedido;
+  saving: boolean;
+}) {
+  const status = normalizeStatusProducao(pedido.statusProducao);
+  const titleId = `production-details-${pedido.id}`;
+
+  return (
+    <div className="production-modal-backdrop" onMouseDown={onClose}>
+      <article
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="production-modal"
+        onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <header className="production-modal-header">
+          <div>
+            <span className="production-modal-kicker">{pedido.tag || "Sem tag"}</span>
+            <h2 id={titleId}>{pedido.clienteNome}</h2>
+          </div>
+          <button
+            aria-label="Fechar detalhes"
+            className="production-modal-close"
+            onClick={onClose}
+            type="button"
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        </header>
+
+        <div className="production-modal-content">
+          {pedido.midiaUrl ? (
+            <img alt="" className="production-modal-media" src={pedido.midiaUrl} />
+          ) : (
+            <div className="production-modal-media production-thumb-empty">
+              Pedido
+            </div>
+          )}
+
+          <div className="production-modal-main">
+            <div className="production-card-top production-modal-status-row">
+              <label className="production-status-field">
+                <span>Status</span>
+                <select
+                  className="production-status-select"
+                  disabled={saving}
+                  onChange={(event) =>
+                    onStatusChange(pedido, event.target.value as StatusProducao)
+                  }
+                  value={status}
+                >
+                  {Object.entries(statusProducaoLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <span className="production-date">
+                <CalendarDays size={14} aria-hidden="true" />
+                {formatDate(pedido.dataEntrega)}
+              </span>
+            </div>
+
+            <p className="production-art-name production-modal-art">
+              {pedido.arteNome || "Convite não informado"}
+            </p>
+
+            <dl className="production-details production-modal-details">
+              {pedido.tipoNomePublico ? (
+                <>
+                  <dt>Tipo</dt>
+                  <dd>{pedido.tipoNomePublico}</dd>
+                </>
+              ) : null}
+
+              {pedido.arteTema ? (
+                <>
+                  <dt>Tema</dt>
+                  <dd>{pedido.arteTema}</dd>
+                </>
+              ) : null}
+
+              <dt>Pedido</dt>
+              <dd>{formatDate(pedido.dataPedido)}</dd>
+
+              <dt>Entrega</dt>
+              <dd>{formatDate(pedido.dataEntrega)}</dd>
+            </dl>
+
+            {pedido.observacoes ? (
+              <div className="production-notes">
+                <span>Observações</span>
+                <p>{pedido.observacoes}</p>
+              </div>
+            ) : null}
+
+            {pedido.canvaUrl ? (
+              <a
+                className="production-link"
+                href={pedido.canvaUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <ExternalLink size={16} aria-hidden="true" />
+                Abrir no Canva
+              </a>
+            ) : null}
+          </div>
+        </div>
+      </article>
+    </div>
   );
 }
 
