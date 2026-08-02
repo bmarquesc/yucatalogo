@@ -477,7 +477,15 @@ function matchesTag(tag: string | null, query: string) {
     return false;
   }
 
-  return normalizeText(tag).includes(normalizeText(query));
+  const normalizedTag = normalizeText(tag);
+  const normalizedQuery = normalizeText(query);
+  const tagParts = normalizedTag.split(/[,\s;/|]+/).filter(Boolean);
+
+  return (
+    normalizedTag === normalizedQuery ||
+    normalizedTag.startsWith(normalizedQuery) ||
+    tagParts.some((part) => part.startsWith(normalizedQuery))
+  );
 }
 
 function normalizeText(value: string) {
