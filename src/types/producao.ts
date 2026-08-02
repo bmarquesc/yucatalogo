@@ -1,7 +1,10 @@
+export type StatusProducao = "a_fazer" | "fazendo" | "pronto_enviado";
+
 export type ProducaoPedido = {
   id: string;
   clienteNome: string;
   tag: string | null;
+  statusProducao: StatusProducao | string | null;
   arteNome: string | null;
   arteTema: string | null;
   tipoNomePublico: string | null;
@@ -10,6 +13,11 @@ export type ProducaoPedido = {
   dataPedido: string | null;
   dataEntrega: string | null;
   observacoes: string | null;
+};
+
+export type ProducaoGrupo = {
+  tag: string;
+  pedidos: ProducaoPedido[];
 };
 
 export type ProducaoData = {
@@ -21,5 +29,6 @@ export type ProducaoData = {
     corDestaque: string | null;
   };
   tag: string;
+  grupos: ProducaoGrupo[];
   pedidos: ProducaoPedido[];
 };

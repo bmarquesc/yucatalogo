@@ -95,6 +95,7 @@ export async function migrateDatabase() {
       valor_total INT DEFAULT 0,
       valor_pago INT DEFAULT 0,
       status TEXT DEFAULT 'em_aberto' CHECK (status IN ('em_aberto','sinal_pago','pago','cancelado')),
+      status_producao TEXT DEFAULT 'a_fazer' CHECK (status_producao IN ('a_fazer','fazendo','pronto_enviado')),
       data_pedido DATE DEFAULT CURRENT_DATE,
       data_entrega DATE,
       observacoes TEXT,
@@ -105,6 +106,11 @@ export async function migrateDatabase() {
   await db.execute(sql`
     ALTER TABLE pedidos
     ADD COLUMN IF NOT EXISTS tag TEXT
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE pedidos
+    ADD COLUMN IF NOT EXISTS status_producao TEXT DEFAULT 'a_fazer'
   `);
 
   await db.execute(sql`

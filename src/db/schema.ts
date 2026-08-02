@@ -120,6 +120,7 @@ export const pedidos = pgTable(
     valorTotal: integer("valor_total").default(0),
     valorPago: integer("valor_pago").default(0),
     status: text("status").default("em_aberto"),
+    statusProducao: text("status_producao").default("a_fazer"),
     dataPedido: date("data_pedido").default(sql`CURRENT_DATE`),
     dataEntrega: date("data_entrega"),
     observacoes: text("observacoes"),
@@ -129,6 +130,10 @@ export const pedidos = pgTable(
     statusCheck: check(
       "pedidos_status_check",
       sql`${table.status} IN ('em_aberto','sinal_pago','pago','cancelado')`
+    ),
+    statusProducaoCheck: check(
+      "pedidos_status_producao_check",
+      sql`${table.statusProducao} IN ('a_fazer','fazendo','pronto_enviado')`
     )
   })
 );

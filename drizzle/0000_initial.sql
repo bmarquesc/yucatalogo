@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS pedidos (
   valor_total INT DEFAULT 0,
   valor_pago INT DEFAULT 0,
   status TEXT DEFAULT 'em_aberto' CHECK (status IN ('em_aberto','sinal_pago','pago','cancelado')),
+  status_producao TEXT DEFAULT 'a_fazer' CHECK (status_producao IN ('a_fazer','fazendo','pronto_enviado')),
   data_pedido DATE DEFAULT CURRENT_DATE,
   data_entrega DATE,
   observacoes TEXT,

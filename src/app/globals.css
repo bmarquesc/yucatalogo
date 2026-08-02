@@ -867,7 +867,7 @@ button {
   display: grid;
   gap: 12px;
   margin: 0 auto;
-  max-width: 980px;
+  max-width: 1180px;
   padding: 0 14px 40px;
 }
 
@@ -888,9 +888,61 @@ button {
   font-weight: 600;
 }
 
-.production-grid {
+.production-board {
+  align-items: start;
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  grid-auto-columns: minmax(280px, 340px);
+  grid-auto-flow: column;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+}
+
+.production-column {
+  background: color-mix(in srgb, var(--cream), #fff 48%);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  display: grid;
+  gap: 10px;
+  max-height: calc(100vh - 220px);
+  min-height: 220px;
+  padding: 10px;
+  scroll-snap-align: start;
+}
+
+.production-column-header {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.production-column-header h2 {
+  font-family: Poppins, ui-sans-serif, system-ui, sans-serif;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.production-column-header span {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--mid);
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+.production-column-cards {
+  display: grid;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .production-card {
@@ -902,7 +954,7 @@ button {
 }
 
 .production-thumb {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 9 / 6;
   background: color-mix(in srgb, var(--brand-accent, #c9a96e), transparent 70%);
   height: 100%;
   object-fit: cover;
@@ -915,7 +967,7 @@ button {
   display: flex;
   font-weight: 700;
   justify-content: center;
-  min-height: 150px;
+  min-height: 130px;
 }
 
 .production-card-body {
@@ -932,7 +984,6 @@ button {
   justify-content: space-between;
 }
 
-.production-tag,
 .production-date {
   align-items: center;
   border-radius: 999px;
@@ -944,17 +995,35 @@ button {
   padding: 0 10px;
 }
 
-.production-tag {
-  background: color-mix(in srgb, var(--brand-accent, #c9a96e), transparent 74%);
-  color: var(--brand-primary, #0d0d0d);
-}
-
 .production-date {
   background: var(--cream);
   color: color-mix(in srgb, var(--brand-primary, #0d0d0d), transparent 30%);
 }
 
-.production-card h2 {
+.production-status-field {
+  display: grid;
+  gap: 4px;
+}
+
+.production-status-field span {
+  color: color-mix(in srgb, var(--brand-primary, #0d0d0d), transparent 42%);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.production-status-select {
+  background: color-mix(in srgb, var(--brand-accent, #c9a96e), transparent 82%);
+  border: 1px solid color-mix(in srgb, var(--brand-accent, #c9a96e), transparent 48%);
+  border-radius: 999px;
+  color: var(--brand-primary, #0d0d0d);
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.production-card h3 {
   font-family: Poppins, ui-sans-serif, system-ui, sans-serif;
   font-size: 22px;
   font-weight: 600;
@@ -1010,6 +1079,7 @@ button {
 
 .production-notes p {
   margin: 0;
+  white-space: pre-wrap;
 }
 
 .production-link {
@@ -1082,12 +1152,8 @@ button {
     padding-inline: 24px;
   }
 
-  .production-card {
-    grid-template-columns: 180px minmax(0, 1fr);
-  }
-
-  .production-thumb {
-    aspect-ratio: auto;
+  .production-board {
+    grid-auto-columns: minmax(310px, 360px);
   }
 }
 

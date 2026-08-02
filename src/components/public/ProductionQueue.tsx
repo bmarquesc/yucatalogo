@@ -1,13 +1,24 @@
 "use client";
 
 import { CalendarDays, ExternalLink, Loader2, Search } from "lucide-react";
-import { FormEvent, useEffect, useState, type CSSProperties } from "react";
+import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from "react";
 
-import type { ProducaoData, ProducaoPedido } from "@/types/producao";
+import type {
+  ProducaoData,
+  ProducaoGrupo,
+  ProducaoPedido,
+  StatusProducao
+} from "@/types/producao";
 
 type ProductionQueueProps = {
   conviteira: ProducaoData["conviteira"];
   initialTag?: string;
+};
+
+const statusProducaoLabels: Record<StatusProducao, string> = {
+  a_fazer: "A fazer",
+  fazendo: "Fazendo",
+  pronto_enviado: "Pronto/enviado"
 };
 
 export function ProductionQueue({
@@ -16,9 +27,15 @@ export function ProductionQueue({
 }: ProductionQueueProps) {
   const [tag, setTag] = useState(initialTag);
   const [searchedTag, setSearchedTag] = useState(initialTag);
-  const [pedidos, setPedidos] = useState<ProducaoPedido[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [grupos, setGrupos] = useState<ProducaoGrupo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savingStatusId, setSavingStatusId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+
+  const totalPedidos = useMemo(
+    () => grupos.reduce((total, grupo) => total + grupo.pedidos.length, 0),
+    [grupos]
+  );
 
   const shellStyle = {
     "--brand-primary": conviteira.corPrincipal || "#0D0D0D",
@@ -26,47 +43,77 @@ export function ProductionQueue({
   } as CSSProperties;
 
   useEffect(() => {
-    if (initialTag.trim()) {
-      void search(initialTag);
-    }
+    void loadBoard(initialTag);
   }, [initialTag]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await search(tag);
+    await loadBoard(tag);
   }
 
-  async function search(value: string) {
+  async function loadBoard(value: string) {
     const trimmedTag = value.trim();
 
-    if (trimmedTag.length < 2) {
+    if (trimmedTag && trimmedTag.length < 2) {
       setMessage("Informe uma tag com pelo menos 2 caracteres.");
-      setPedidos([]);
+      setGrupos([]);
       setSearchedTag(trimmedTag);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
     setMessage("");
-    const response = await fetch(
-      `/api/producao/${conviteira.slug}?tag=${encodeURIComponent(trimmedTag)}`,
-      { cache: "no-store" }
-    );
+    const query = trimmedTag ? `?tag=${encodeURIComponent(trimmedTag)}` : "";
+    const response = await fetch(`/api/producao/${conviteira.slug}${query}`, {
+      cache: "no-store"
+    });
     setLoading(false);
 
     if (!response.ok) {
       setMessage("Não foi possível carregar a fila.");
-      setPedidos([]);
+      setGrupos([]);
       return;
     }
 
     const data = (await response.json()) as { producao: ProducaoData };
-    setPedidos(data.producao.pedidos);
+    setGrupos(data.producao.grupos);
     setSearchedTag(data.producao.tag);
 
     const url = new URL(window.location.href);
-    url.searchParams.set("tag", trimmedTag);
+    if (trimmedTag) {
+      url.searchParams.set("tag", trimmedTag);
+    } else {
+      url.searchParams.delete("tag");
+    }
     window.history.replaceState(null, "", url);
+  }
+
+  async function updateStatus(pedido: ProducaoPedido, statusProducao: StatusProducao) {
+    setSavingStatusId(pedido.id);
+    const response = await fetch(
+      `/api/producao/${conviteira.slug}/pedidos/${pedido.id}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ statusProducao })
+      }
+    );
+    setSavingStatusId(null);
+
+    if (!response.ok) {
+      setMessage("Não foi possível atualizar o status.");
+      return;
+    }
+
+    setGrupos((current) =>
+      current.map((grupo) => ({
+        ...grupo,
+        pedidos: grupo.pedidos.map((item) =>
+          item.id === pedido.id ? { ...item, statusProducao } : item
+        )
+      }))
+    );
   }
 
   return (
@@ -84,11 +131,11 @@ export function ProductionQueue({
 
         <form className="production-search" onSubmit={submit}>
           <label className="production-field">
-            <span className="production-label">Tag da equipe</span>
+            <span className="production-label">Filtrar por tag</span>
             <input
               className="production-input"
               onChange={(event) => setTag(event.target.value)}
-              placeholder="Ex.: Ana"
+              placeholder="Ex.: Mariana"
               value={tag}
             />
           </label>
@@ -106,10 +153,14 @@ export function ProductionQueue({
       <section className="production-content">
         {message ? <div className="production-empty">{message}</div> : null}
 
-        {!message && searchedTag && !loading ? (
+        {!message && !loading ? (
           <div className="production-summary">
-            <strong>{pedidos.length}</strong>
-            <span>{pedidos.length === 1 ? "demanda encontrada" : "demandas encontradas"}</span>
+            <strong>{totalPedidos}</strong>
+            <span>
+              {totalPedidos === 1 ? "demanda" : "demandas"} em {grupos.length}{" "}
+              {grupos.length === 1 ? "quadro" : "quadros"}
+              {searchedTag ? ` para ${searchedTag}` : ""}
+            </span>
           </div>
         ) : null}
 
@@ -119,23 +170,48 @@ export function ProductionQueue({
           </div>
         ) : null}
 
-        {!loading && pedidos.length ? (
-          <div className="production-grid">
-            {pedidos.map((pedido) => (
-              <ProductionCard key={pedido.id} pedido={pedido} />
+        {!loading && grupos.length ? (
+          <div className="production-board">
+            {grupos.map((grupo) => (
+              <section className="production-column" key={grupo.tag}>
+                <header className="production-column-header">
+                  <h2>{grupo.tag}</h2>
+                  <span>{grupo.pedidos.length}</span>
+                </header>
+                <div className="production-column-cards">
+                  {grupo.pedidos.map((pedido) => (
+                    <ProductionCard
+                      key={pedido.id}
+                      onStatusChange={updateStatus}
+                      pedido={pedido}
+                      saving={savingStatusId === pedido.id}
+                    />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         ) : null}
 
-        {!loading && searchedTag && !message && !pedidos.length ? (
-          <div className="production-empty">Nenhuma demanda para essa tag.</div>
+        {!loading && !message && !grupos.length ? (
+          <div className="production-empty">Nenhuma demanda encontrada.</div>
         ) : null}
       </section>
     </main>
   );
 }
 
-function ProductionCard({ pedido }: { pedido: ProducaoPedido }) {
+function ProductionCard({
+  onStatusChange,
+  pedido,
+  saving
+}: {
+  onStatusChange: (pedido: ProducaoPedido, status: StatusProducao) => void;
+  pedido: ProducaoPedido;
+  saving: boolean;
+}) {
+  const status = normalizeStatusProducao(pedido.statusProducao);
+
   return (
     <article className="production-card">
       {pedido.midiaUrl ? (
@@ -146,14 +222,30 @@ function ProductionCard({ pedido }: { pedido: ProducaoPedido }) {
 
       <div className="production-card-body">
         <div className="production-card-top">
-          <span className="production-tag">{pedido.tag || "Sem tag"}</span>
+          <label className="production-status-field">
+            <span>Status</span>
+            <select
+              className="production-status-select"
+              disabled={saving}
+              onChange={(event) =>
+                onStatusChange(pedido, event.target.value as StatusProducao)
+              }
+              value={status}
+            >
+              {Object.entries(statusProducaoLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
           <span className="production-date">
             <CalendarDays size={14} aria-hidden="true" />
             {formatDate(pedido.dataEntrega)}
           </span>
         </div>
 
-        <h2>{pedido.clienteNome}</h2>
+        <h3>{pedido.clienteNome}</h3>
         <p className="production-art-name">
           {pedido.arteNome || "Convite não informado"}
         </p>
@@ -198,6 +290,18 @@ function ProductionCard({ pedido }: { pedido: ProducaoPedido }) {
       </div>
     </article>
   );
+}
+
+function normalizeStatusProducao(status: ProducaoPedido["statusProducao"]): StatusProducao {
+  if (
+    status === "a_fazer" ||
+    status === "fazendo" ||
+    status === "pronto_enviado"
+  ) {
+    return status;
+  }
+
+  return "a_fazer";
 }
 
 function formatDate(value: string | null | undefined) {

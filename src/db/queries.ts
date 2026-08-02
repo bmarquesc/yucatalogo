@@ -20,7 +20,7 @@ import type {
   PublicCatalog
 } from "@/types/catalog";
 import type { CaixaData, CaixaGasto, CaixaPedido } from "@/types/caixa";
-import type { ProducaoData } from "@/types/producao";
+import type { ProducaoData, ProducaoPedido } from "@/types/producao";
 
 export async function getConviteiraByUserId(userId: string) {
   const [conviteira] = await getDb()
@@ -241,21 +241,21 @@ export async function getProducaoForTag(
   }
 
   const normalizedTag = tag.trim();
+  const allPedidoRows = await getDb()
+    .select()
+    .from(pedidos)
+    .where(
+      and(
+        eq(pedidos.conviteiraId, conviteira.id),
+        ne(pedidos.status, "cancelado")
+      )
+    )
+    .orderBy(asc(pedidos.tag), asc(pedidos.dataEntrega), asc(pedidos.clienteNome));
+
   const pedidoRows =
     normalizedTag.length >= 2
-      ? (
-          await getDb()
-            .select()
-            .from(pedidos)
-            .where(
-              and(
-                eq(pedidos.conviteiraId, conviteira.id),
-                ne(pedidos.status, "cancelado")
-              )
-            )
-            .orderBy(asc(pedidos.dataEntrega), asc(pedidos.clienteNome))
-        ).filter((pedido) => matchesTag(pedido.tag, normalizedTag))
-      : [];
+      ? allPedidoRows.filter((pedido) => matchesTag(pedido.tag, normalizedTag))
+      : allPedidoRows;
 
   const arteIds = Array.from(
     new Set(
@@ -286,6 +286,29 @@ export async function getProducaoForTag(
   const tipoById = new Map(tipoRows.map((tipo) => [tipo.id, tipo]));
   const mediaByArte = groupMediaByArte(mediaRows);
 
+  const producaoPedidos = pedidoRows.map((pedido) => {
+    const arte = pedido.arteId ? arteById.get(pedido.arteId) : null;
+    const tipo = arte?.tipoId ? tipoById.get(arte.tipoId) : null;
+    const media = arte ? mediaByArte.get(arte.id) ?? [] : [];
+    const cover =
+      media.find((item) => item.tipo === "imagem") ?? media[0] ?? null;
+
+    return {
+      id: pedido.id,
+      clienteNome: pedido.clienteNome,
+      tag: pedido.tag,
+      statusProducao: pedido.statusProducao ?? "a_fazer",
+      arteNome: pedido.arteNome || arte?.nome || null,
+      arteTema: arte?.tema ?? null,
+      tipoNomePublico: tipo?.nomePublico ?? null,
+      canvaUrl: arte?.canvaUrl ?? null,
+      midiaUrl: cover?.url ?? null,
+      dataPedido: pedido.dataPedido,
+      dataEntrega: pedido.dataEntrega,
+      observacoes: pedido.observacoes
+    };
+  });
+
   return {
     conviteira: {
       slug: conviteira.slug,
@@ -295,27 +318,8 @@ export async function getProducaoForTag(
       corDestaque: conviteira.corDestaque
     },
     tag: normalizedTag,
-    pedidos: pedidoRows.map((pedido) => {
-      const arte = pedido.arteId ? arteById.get(pedido.arteId) : null;
-      const tipo = arte?.tipoId ? tipoById.get(arte.tipoId) : null;
-      const media = arte ? mediaByArte.get(arte.id) ?? [] : [];
-      const cover =
-        media.find((item) => item.tipo === "imagem") ?? media[0] ?? null;
-
-      return {
-        id: pedido.id,
-        clienteNome: pedido.clienteNome,
-        tag: pedido.tag,
-        arteNome: pedido.arteNome || arte?.nome || null,
-        arteTema: arte?.tema ?? null,
-        tipoNomePublico: tipo?.nomePublico ?? null,
-        canvaUrl: arte?.canvaUrl ?? null,
-        midiaUrl: cover?.url ?? null,
-        dataPedido: pedido.dataPedido,
-        dataEntrega: pedido.dataEntrega,
-        observacoes: pedido.observacoes
-      };
-    })
+    grupos: groupProducaoByTag(producaoPedidos),
+    pedidos: producaoPedidos
   };
 }
 
@@ -486,6 +490,21 @@ function matchesTag(tag: string | null, query: string) {
     normalizedTag.startsWith(normalizedQuery) ||
     tagParts.some((part) => part.startsWith(normalizedQuery))
   );
+}
+
+function groupProducaoByTag(pedidosData: ProducaoPedido[]) {
+  const groups = pedidosData.reduce((map, pedido) => {
+    const tag = pedido.tag?.trim() || "Sem tag";
+    const group = map.get(tag) ?? [];
+    group.push(pedido);
+    map.set(tag, group);
+    return map;
+  }, new Map<string, ProducaoPedido[]>());
+
+  return Array.from(groups.entries()).map(([tag, groupPedidos]) => ({
+    tag,
+    pedidos: groupPedidos
+  }));
 }
 
 function normalizeText(value: string) {
