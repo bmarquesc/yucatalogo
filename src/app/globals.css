@@ -488,7 +488,6 @@ button {
 }
 
 .public-brand-title,
-.public-tipo-description,
 .showroom-title {
   color: var(--brand-primary);
   font-family: var(--catalog-font-display);
@@ -556,10 +555,13 @@ button {
 }
 
 .public-tipo-description {
-  font-size: 26px;
-  line-height: 1.08;
-  margin-bottom: 16px;
-  max-width: 720px;
+  color: color-mix(in srgb, var(--brand-primary), transparent 24%);
+  font-family: var(--catalog-font-body);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.48;
+  margin: 0 0 14px;
+  max-width: 680px;
 }
 
 .public-search,
@@ -1362,7 +1364,7 @@ button {
   }
 
   .public-tipo-description {
-    font-size: 34px;
+    font-size: 16px;
   }
 
   .public-search {
@@ -1416,10 +1418,6 @@ button {
 
   .public-brand-title {
     font-size: 76px;
-  }
-
-  .public-tipo-description {
-    font-size: 38px;
   }
 
   .public-art-grid {

@@ -121,9 +121,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
       <section className="public-content">
         {activeTipoData?.modoDisplay === "demonstracao" &&
         activeTipoData.descricaoPublica ? (
-          <p
-            className="font-display public-tipo-description"
-          >
+          <p className="public-tipo-description">
             {activeTipoData.descricaoPublica}
           </p>
         ) : null}
