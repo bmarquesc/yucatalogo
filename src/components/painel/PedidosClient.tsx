@@ -120,7 +120,7 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
     setPedidoForm((current) => ({
       ...current,
       arteId,
-      arteNome: arte?.nome || current.arteNome
+      arteNome: formatArtePedidoNome(arte, current.arteNome)
     }));
 
     if (arte) {
@@ -909,6 +909,21 @@ function normalizeStatus(status: CaixaPedido["status"]): StatusPedido {
   }
 
   return "em_aberto";
+}
+
+function formatArtePedidoNome(arte: CatalogArte | null | undefined, fallback: string) {
+  const nome = arte?.nome?.trim();
+  const tipo = (arte?.tipo?.nomePublico || arte?.tipo?.nome || "").trim();
+
+  if (!nome) {
+    return fallback;
+  }
+
+  if (!tipo || normalizeSearch(nome).includes(normalizeSearch(tipo))) {
+    return nome;
+  }
+
+  return `${nome} ${tipo}`;
 }
 
 function normalizeSearch(value: string) {
