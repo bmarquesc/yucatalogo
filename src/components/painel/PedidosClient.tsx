@@ -5,6 +5,7 @@ import {
   Copy,
   ExternalLink,
   Loader2,
+  Pencil,
   Plus,
   ReceiptText,
   Save,
@@ -57,6 +58,7 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
   const [saving, setSaving] = useState(false);
   const [pedidoOpen, setPedidoOpen] = useState(false);
   const [gastoOpen, setGastoOpen] = useState(false);
+  const [editingPedidoId, setEditingPedidoId] = useState<string | null>(null);
   const [pedidoForm, setPedidoForm] = useState(emptyPedido);
   const [gastoForm, setGastoForm] = useState(emptyGasto);
   const [arteSearch, setArteSearch] = useState("");
@@ -134,6 +136,39 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
     }));
   }
 
+  function openNewPedido() {
+    setEditingPedidoId(null);
+    setPedidoForm(emptyPedido);
+    setArteSearch("");
+    setPedidoOpen(true);
+  }
+
+  function openEditPedido(pedido: CaixaPedido) {
+    setEditingPedidoId(pedido.id);
+    setPedidoForm({
+      clienteNome: pedido.clienteNome,
+      clienteWhatsapp: pedido.clienteWhatsapp ?? "",
+      tag: pedido.tag ?? "",
+      arteId: pedido.arteId ?? "",
+      arteNome: pedido.arteNome ?? "",
+      valorTotal: centsToInput(pedido.valorTotal),
+      valorPago: centsToInput(pedido.valorPago),
+      status: normalizeStatus(pedido.status),
+      dataPedido: pedido.dataPedido ?? today(),
+      dataEntrega: pedido.dataEntrega ?? "",
+      observacoes: pedido.observacoes ?? ""
+    });
+    setArteSearch("");
+    setPedidoOpen(true);
+  }
+
+  function closePedidoModal() {
+    setPedidoOpen(false);
+    setEditingPedidoId(null);
+    setPedidoForm(emptyPedido);
+    setArteSearch("");
+  }
+
   async function copyProductionLink() {
     if (!productionSlug) {
       return;
@@ -153,23 +188,28 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
     event.preventDefault();
     setSaving(true);
 
-    const response = await fetch("/api/caixa/pedidos", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        clienteNome: pedidoForm.clienteNome,
-        clienteWhatsapp: pedidoForm.clienteWhatsapp,
-        tag: pedidoForm.tag,
-        arteId: pedidoForm.arteId || null,
-        arteNome: pedidoForm.arteNome,
-        valorTotal: moneyToCents(pedidoForm.valorTotal),
-        valorPago: moneyToCents(pedidoForm.valorPago),
-        status: pedidoForm.status,
-        dataPedido: pedidoForm.dataPedido,
-        dataEntrega: pedidoForm.dataEntrega || null,
-        observacoes: pedidoForm.observacoes
-      })
-    });
+    const response = await fetch(
+      editingPedidoId
+        ? `/api/caixa/pedidos/${editingPedidoId}`
+        : "/api/caixa/pedidos",
+      {
+        method: editingPedidoId ? "PATCH" : "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          clienteNome: pedidoForm.clienteNome,
+          clienteWhatsapp: pedidoForm.clienteWhatsapp,
+          tag: pedidoForm.tag,
+          arteId: pedidoForm.arteId || null,
+          arteNome: pedidoForm.arteNome,
+          valorTotal: moneyToCents(pedidoForm.valorTotal),
+          valorPago: moneyToCents(pedidoForm.valorPago),
+          status: pedidoForm.status,
+          dataPedido: pedidoForm.dataPedido,
+          dataEntrega: pedidoForm.dataEntrega || null,
+          observacoes: pedidoForm.observacoes
+        })
+      }
+    );
 
     setSaving(false);
 
@@ -179,10 +219,8 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
       return;
     }
 
-    notify("Pedido cadastrado.");
-    setPedidoForm(emptyPedido);
-    setArteSearch("");
-    setPedidoOpen(false);
+    notify(editingPedidoId ? "Pedido atualizado." : "Pedido cadastrado.");
+    closePedidoModal();
     await load();
   }
 
@@ -290,7 +328,7 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
             <ReceiptText size={17} aria-hidden="true" />
             Gasto
           </button>
-          <button className="button" onClick={() => setPedidoOpen(true)} type="button">
+          <button className="button" onClick={openNewPedido} type="button">
             <Plus size={17} aria-hidden="true" />
             Pedido
           </button>
@@ -367,14 +405,24 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
                       <div className="panel-list-values">
                         <strong>{formatMoney(pedido.valorTotal ?? 0)}</strong>
                         <span>{formatMoney(pedido.valorPago ?? 0)} recebido</span>
-                        <button
-                          className="icon-button"
-                          onClick={() => removePedido(pedido)}
-                          title="Excluir pedido"
-                          type="button"
-                        >
-                          <Trash2 size={16} aria-hidden="true" />
-                        </button>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            className="icon-button"
+                            onClick={() => openEditPedido(pedido)}
+                            title="Editar pedido"
+                            type="button"
+                          >
+                            <Pencil size={16} aria-hidden="true" />
+                          </button>
+                          <button
+                            className="icon-button"
+                            onClick={() => removePedido(pedido)}
+                            title="Excluir pedido"
+                            type="button"
+                          >
+                            <Trash2 size={16} aria-hidden="true" />
+                          </button>
+                        </div>
                       </div>
                     </article>
                   ))}
@@ -453,11 +501,8 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
 
       {pedidoOpen ? (
         <Modal
-          title="Novo pedido"
-          onClose={() => {
-            setPedidoOpen(false);
-            setArteSearch("");
-          }}
+          title={editingPedidoId ? "Editar pedido" : "Novo pedido"}
+          onClose={closePedidoModal}
         >
           <form className="grid-panel" onSubmit={submitPedido}>
             <div
@@ -703,7 +748,7 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
               ) : (
                 <Save size={17} aria-hidden="true" />
               )}
-              Salvar pedido
+              {editingPedidoId ? "Atualizar pedido" : "Salvar pedido"}
             </button>
           </form>
         </Modal>
@@ -848,6 +893,22 @@ function moneyToCents(value: string) {
   }
 
   return Math.round(numberValue * 100);
+}
+
+function centsToInput(value: number | null | undefined) {
+  if (!value) {
+    return "0,00";
+  }
+
+  return (value / 100).toFixed(2).replace(".", ",");
+}
+
+function normalizeStatus(status: CaixaPedido["status"]): StatusPedido {
+  if (status && status in statusLabels) {
+    return status as StatusPedido;
+  }
+
+  return "em_aberto";
 }
 
 function normalizeSearch(value: string) {

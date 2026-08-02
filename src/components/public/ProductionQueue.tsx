@@ -178,7 +178,10 @@ function ProductionCard({ pedido }: { pedido: ProducaoPedido }) {
         </dl>
 
         {pedido.observacoes ? (
-          <p className="production-notes">{pedido.observacoes}</p>
+          <div className="production-notes">
+            <span>Observações</span>
+            <p>{pedido.observacoes}</p>
+          </div>
         ) : null}
 
         {pedido.canvaUrl ? (

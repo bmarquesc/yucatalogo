@@ -996,7 +996,20 @@ button {
 .production-notes {
   background: var(--cream);
   border-radius: 4px;
+  display: grid;
+  gap: 6px;
   padding: 10px;
+}
+
+.production-notes span {
+  color: color-mix(in srgb, var(--brand-primary, #0d0d0d), transparent 42%);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.production-notes p {
+  margin: 0;
 }
 
 .production-link {
