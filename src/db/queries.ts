@@ -1,4 +1,4 @@
-import { asc, eq, inArray, ne } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import {
@@ -6,6 +6,8 @@ import {
   artes,
   camposPedido,
   conviteiras,
+  gastosCaixa,
+  pedidos,
   tiposConvite
 } from "@/db/schema";
 import { DEFAULT_CAMPOS_PEDIDO, DEFAULT_TIPOS_CONVITE } from "@/lib/defaults";
@@ -17,6 +19,7 @@ import type {
   CatalogTipo,
   PublicCatalog
 } from "@/types/catalog";
+import type { CaixaData, CaixaGasto, CaixaPedido } from "@/types/caixa";
 
 export async function getConviteiraByUserId(userId: string) {
   const [conviteira] = await getDb()
@@ -33,6 +36,16 @@ export async function getConviteiraBySlug(slug: string) {
     .select()
     .from(conviteiras)
     .where(eq(conviteiras.slug, slug))
+    .limit(1);
+
+  return conviteira ?? null;
+}
+
+export async function getFirstConviteira() {
+  const [conviteira] = await getDb()
+    .select()
+    .from(conviteiras)
+    .orderBy(asc(conviteiras.criadoEm))
     .limit(1);
 
   return conviteira ?? null;
@@ -119,6 +132,7 @@ export async function updateConviteira(
     bannerUrl?: string | null;
     corPrincipal?: string;
     corDestaque?: string;
+    fonteCatalogo?: string;
   }
 ) {
   const data = {
@@ -129,7 +143,8 @@ export async function updateConviteira(
     logoUrl: input.logoUrl,
     bannerUrl: input.bannerUrl,
     corPrincipal: input.corPrincipal,
-    corDestaque: input.corDestaque
+    corDestaque: input.corDestaque,
+    fonteCatalogo: input.fonteCatalogo
   };
 
   if (data.slug) {
@@ -167,6 +182,51 @@ export async function getCamposForConviteira(conviteiraId: string) {
     .from(camposPedido)
     .where(eq(camposPedido.conviteiraId, conviteiraId))
     .orderBy(asc(camposPedido.ordem), asc(camposPedido.label));
+}
+
+export async function getCaixaForConviteira(
+  conviteiraId: string,
+  month: string
+): Promise<CaixaData> {
+  const normalizedMonth = normalizeMonth(month);
+
+  const [pedidoRows, gastoRows] = await Promise.all([
+    getDb()
+      .select()
+      .from(pedidos)
+      .where(eq(pedidos.conviteiraId, conviteiraId))
+      .orderBy(asc(pedidos.dataEntrega), asc(pedidos.clienteNome)),
+    getDb()
+      .select()
+      .from(gastosCaixa)
+      .where(eq(gastosCaixa.conviteiraId, conviteiraId))
+      .orderBy(asc(gastosCaixa.dataGasto), asc(gastosCaixa.descricao))
+  ]);
+
+  const pedidosData = pedidoRows
+    .map(toCaixaPedido)
+    .filter((pedido) => isInMonth(pedido.dataPedido, normalizedMonth));
+  const gastosData = gastoRows
+    .map(toCaixaGasto)
+    .filter((gasto) => isInMonth(gasto.dataGasto, normalizedMonth));
+  const pedidosAtivos = pedidosData.filter((pedido) => pedido.status !== "cancelado");
+  const bruto = sumCurrency(pedidosAtivos.map((pedido) => pedido.valorTotal));
+  const recebido = sumCurrency(pedidosAtivos.map((pedido) => pedido.valorPago));
+  const gastos = sumCurrency(gastosData.map((gasto) => gasto.valor));
+
+  return {
+    mes: normalizedMonth,
+    resumo: {
+      bruto,
+      recebido,
+      aReceber: Math.max(bruto - recebido, 0),
+      gastos,
+      liquido: recebido - gastos,
+      pedidosCount: pedidosAtivos.length
+    },
+    pedidos: pedidosData,
+    gastos: gastosData
+  };
 }
 
 export async function getAdminArtes(conviteiraId: string): Promise<CatalogArte[]> {
@@ -254,7 +314,8 @@ export async function getPublicCatalog(slug: string): Promise<PublicCatalog | nu
       logoUrl: conviteira.logoUrl,
       bannerUrl: conviteira.bannerUrl,
       corPrincipal: conviteira.corPrincipal,
-      corDestaque: conviteira.corDestaque
+      corDestaque: conviteira.corDestaque,
+      fonteCatalogo: conviteira.fonteCatalogo
     },
     tipos: tipoRows.map(toCatalogTipo),
     artes: activeArtes.map((arte) => ({
@@ -308,5 +369,47 @@ function toCatalogCampo(campo: typeof camposPedido.$inferSelect): CatalogCampo {
     opcoes: campo.opcoes,
     obrigatorio: campo.obrigatorio,
     ordem: campo.ordem
+  };
+}
+
+function normalizeMonth(month: string) {
+  return /^\d{4}-\d{2}$/.test(month)
+    ? month
+    : new Date().toISOString().slice(0, 7);
+}
+
+function isInMonth(date: string | null | undefined, month: string) {
+  return Boolean(date?.startsWith(month));
+}
+
+function sumCurrency(values: Array<number | null | undefined>) {
+  return values.reduce<number>((total, value) => total + (value ?? 0), 0);
+}
+
+function toCaixaPedido(pedido: typeof pedidos.$inferSelect): CaixaPedido {
+  return {
+    id: pedido.id,
+    arteId: pedido.arteId,
+    clienteNome: pedido.clienteNome,
+    clienteWhatsapp: pedido.clienteWhatsapp,
+    tag: pedido.tag,
+    arteNome: pedido.arteNome,
+    valorTotal: pedido.valorTotal,
+    valorPago: pedido.valorPago,
+    status: pedido.status,
+    dataPedido: pedido.dataPedido,
+    dataEntrega: pedido.dataEntrega,
+    observacoes: pedido.observacoes
+  };
+}
+
+function toCaixaGasto(gasto: typeof gastosCaixa.$inferSelect): CaixaGasto {
+  return {
+    id: gasto.id,
+    descricao: gasto.descricao,
+    categoria: gasto.categoria,
+    valor: gasto.valor,
+    dataGasto: gasto.dataGasto,
+    observacoes: gasto.observacoes
   };
 }

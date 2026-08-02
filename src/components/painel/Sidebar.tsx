@@ -5,13 +5,15 @@ import {
   Images,
   LayoutDashboard,
   Palette,
-  Settings2
+  Settings2,
+  Wallet
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 
 const links = [
+  { href: "/painel/pedidos", label: "Pedidos", icon: Wallet },
   { href: "/painel/catalogo", label: "Catálogo", icon: Images },
   { href: "/painel/filtros", label: "Filtros", icon: Settings2 },
   { href: "/painel/perguntas", label: "Perguntas", icon: ClipboardList },
@@ -20,10 +22,12 @@ const links = [
 
 export function Sidebar({
   nomeMarca,
-  slug
+  slug,
+  localDev = false
 }: {
   nomeMarca: string;
   slug: string;
+  localDev?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -57,7 +61,11 @@ export function Sidebar({
       </Link>
 
       <div className="sidebar-footer">
-        <UserButton afterSignOutUrl="/entrar" />
+        {localDev ? (
+          <div className="sidebar-avatar" title="Acesso local">D</div>
+        ) : (
+          <UserButton afterSignOutUrl="/entrar" />
+        )}
         <div>
           <div style={{ fontSize: 13, fontWeight: 600 }}>{nomeMarca}</div>
           <div style={{ color: "rgba(255,255,255,0.58)", fontSize: 12 }}>

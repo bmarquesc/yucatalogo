@@ -17,6 +17,7 @@ type ConviteiraPayload = {
   bannerUrl?: string | null;
   corPrincipal?: string;
   corDestaque?: string;
+  fonteCatalogo?: string;
 };
 
 export async function GET() {
@@ -49,7 +50,8 @@ export async function PUT(request: Request) {
       logoUrl: body.logoUrl ?? undefined,
       bannerUrl: body.bannerUrl ?? undefined,
       corPrincipal: body.corPrincipal,
-      corDestaque: body.corDestaque
+      corDestaque: body.corDestaque,
+      fonteCatalogo: body.fonteCatalogo
     });
 
     return NextResponse.json({ conviteira: updated });

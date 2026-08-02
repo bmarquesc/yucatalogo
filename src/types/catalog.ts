@@ -71,6 +71,7 @@ export type PublicCatalog = {
     bannerUrl: string | null;
     corPrincipal: string | null;
     corDestaque: string | null;
+    fonteCatalogo: string | null;
   };
   tipos: CatalogTipo[];
   artes: Omit<CatalogArte, "canvaUrl">[];

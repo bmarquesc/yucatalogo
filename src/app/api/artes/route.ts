@@ -44,6 +44,19 @@ export async function POST(request: Request) {
       return jsonError("Nome da arte é obrigatório.");
     }
 
+    const imageCount =
+      body.midias?.filter((media) => media.tipo === "imagem").length ?? 0;
+    const videoCount =
+      body.midias?.filter((media) => media.tipo === "video").length ?? 0;
+
+    if (imageCount > 10) {
+      return jsonError("Cada convite pode ter no máximo 10 fotos.");
+    }
+
+    if (videoCount > 1) {
+      return jsonError("Cada convite pode ter no máximo 1 vídeo.");
+    }
+
     const db = getDb();
     const [created] = await db
       .insert(artes)

@@ -40,6 +40,22 @@ export async function POST(request: Request) {
       return jsonError("Arte não encontrada.", 404);
     }
 
+    const existingMedia = await getDb()
+      .select({ tipo: arteMidias.tipo })
+      .from(arteMidias)
+      .where(eq(arteMidias.arteId, body.arteId));
+
+    const currentImages = existingMedia.filter((media) => media.tipo === "imagem").length;
+    const currentVideos = existingMedia.filter((media) => media.tipo === "video").length;
+
+    if (body.tipo === "imagem" && currentImages >= 10) {
+      return jsonError("Cada convite pode ter no máximo 10 fotos.");
+    }
+
+    if (body.tipo === "video" && currentVideos >= 1) {
+      return jsonError("Cada convite pode ter no máximo 1 vídeo.");
+    }
+
     const [media] = await getDb()
       .insert(arteMidias)
       .values({

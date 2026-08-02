@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 
 import { UploadZone } from "@/components/painel/UploadZone";
 import { useToast } from "@/components/painel/ToastProvider";
+import {
+  CATALOG_FONT_OPTIONS,
+  DEFAULT_CATALOG_FONT,
+  getCatalogFontOption
+} from "@/lib/catalogFonts";
 
 type ConviteiraForm = {
   nomeMarca: string;
@@ -16,6 +21,7 @@ type ConviteiraForm = {
   bannerUrl: string;
   corPrincipal: string;
   corDestaque: string;
+  fonteCatalogo: string;
 };
 
 const emptyForm: ConviteiraForm = {
@@ -26,7 +32,8 @@ const emptyForm: ConviteiraForm = {
   logoUrl: "",
   bannerUrl: "",
   corPrincipal: "#0D0D0D",
-  corDestaque: "#C9A96E"
+  corDestaque: "#C9A96E",
+  fonteCatalogo: DEFAULT_CATALOG_FONT
 };
 
 export function PerfilClient() {
@@ -61,7 +68,8 @@ export function PerfilClient() {
       logoUrl: data.conviteira.logoUrl || "",
       bannerUrl: data.conviteira.bannerUrl || "",
       corPrincipal: data.conviteira.corPrincipal || "#0D0D0D",
-      corDestaque: data.conviteira.corDestaque || "#C9A96E"
+      corDestaque: data.conviteira.corDestaque || "#C9A96E",
+      fonteCatalogo: data.conviteira.fonteCatalogo || DEFAULT_CATALOG_FONT
     });
     setLoading(false);
   }
@@ -127,6 +135,8 @@ export function PerfilClient() {
       </section>
     );
   }
+
+  const selectedFont = getCatalogFontOption(form.fonteCatalogo);
 
   return (
     <section className="panel-page">
@@ -208,6 +218,23 @@ export function PerfilClient() {
             />
           </label>
 
+          <label className="field">
+            <span className="form-label">Fonte do catálogo</span>
+            <select
+              className="select"
+              onChange={(event) =>
+                setForm({ ...form, fonteCatalogo: event.target.value })
+              }
+              value={form.fonteCatalogo}
+            >
+              {CATALOG_FONT_OPTIONS.map((font) => (
+                <option key={font.value} value={font.value}>
+                  {font.label} - {font.description}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <div
             style={{
               display: "grid",
@@ -280,6 +307,7 @@ export function PerfilClient() {
             style={{
               border: "1px solid var(--rule)",
               color: form.corPrincipal,
+              fontFamily: selectedFont.bodyFamily,
               marginTop: 14,
               overflow: "hidden"
             }}
@@ -328,7 +356,12 @@ export function PerfilClient() {
               <div>
                 <h2
                   className="font-display"
-                  style={{ fontSize: 32, lineHeight: 1, margin: 0 }}
+                  style={{
+                    fontFamily: selectedFont.displayFamily,
+                    fontSize: 32,
+                    lineHeight: 1,
+                    margin: 0
+                  }}
                 >
                   {form.nomeMarca || "Sua marca"}
                 </h2>

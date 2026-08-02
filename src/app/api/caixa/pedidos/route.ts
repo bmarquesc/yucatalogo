@@ -1,0 +1,107 @@
+import { NextResponse } from "next/server";
+
+import { getDb } from "@/db";
+import { pedidos } from "@/db/schema";
+import { handleRouteError, jsonError, readJson } from "@/lib/api";
+import { requireConviteira } from "@/lib/auth";
+import type { StatusPedido } from "@/types/caixa";
+
+export const dynamic = "force-dynamic";
+
+const STATUS_OPTIONS: StatusPedido[] = [
+  "em_aberto",
+  "sinal_pago",
+  "pago",
+  "cancelado"
+];
+
+type PedidoPayload = {
+  arteId?: string | null;
+  clienteNome?: string;
+  clienteWhatsapp?: string | null;
+  tag?: string | null;
+  arteNome?: string | null;
+  valorTotal?: number;
+  valorPago?: number;
+  status?: StatusPedido;
+  dataPedido?: string | null;
+  dataEntrega?: string | null;
+  observacoes?: string | null;
+};
+
+export async function POST(request: Request) {
+  try {
+    const { conviteira } = await requireConviteira();
+    const body = await readJson<PedidoPayload>(request);
+
+    if (!body.clienteNome?.trim()) {
+      return jsonError("Nome da cliente é obrigatório.");
+    }
+
+    const valorTotal = sanitizeMoney(body.valorTotal);
+    const valorPago = sanitizeMoney(body.valorPago);
+    const status = resolveStatus(body.status, valorTotal, valorPago);
+
+    const [pedido] = await getDb()
+      .insert(pedidos)
+      .values({
+        conviteiraId: conviteira.id,
+        arteId: body.arteId || null,
+        clienteNome: body.clienteNome.trim(),
+        clienteWhatsapp: body.clienteWhatsapp?.trim() || null,
+        tag: body.tag?.trim() || null,
+        arteNome: body.arteNome?.trim() || null,
+        valorTotal,
+        valorPago,
+        status,
+        dataPedido: normalizeDate(body.dataPedido) || today(),
+        dataEntrega: normalizeDate(body.dataEntrega),
+        observacoes: body.observacoes?.trim() || null
+      })
+      .returning();
+
+    return NextResponse.json({ pedido }, { status: 201 });
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
+function sanitizeMoney(value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return 0;
+  }
+
+  return Math.round(value);
+}
+
+function resolveStatus(
+  status: StatusPedido | undefined,
+  valorTotal: number,
+  valorPago: number
+): StatusPedido {
+  if (status && STATUS_OPTIONS.includes(status)) {
+    return status;
+  }
+
+  if (valorTotal > 0 && valorPago >= valorTotal) {
+    return "pago";
+  }
+
+  if (valorPago > 0) {
+    return "sinal_pago";
+  }
+
+  return "em_aberto";
+}
+
+function normalizeDate(value: string | null | undefined) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+
+  return value;
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}

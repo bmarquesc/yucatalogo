@@ -1,0 +1,6 @@
+export function isLocalDevAuthEnabled() {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.DEV_AUTH_BYPASS === "true"
+  );
+}

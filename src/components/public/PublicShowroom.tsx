@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { getCatalogFontOption } from "@/lib/catalogFonts";
 import type { CatalogCampo, PublicCatalog } from "@/types/catalog";
 
 export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
@@ -39,15 +40,18 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
     );
   }, [activeTipo, activeTipoData?.modoDisplay, catalog.artes, search]);
 
+  const selectedFont = getCatalogFontOption(catalog.conviteira.fonteCatalogo);
   const shellStyle = {
     "--brand-primary": catalog.conviteira.corPrincipal || "#0D0D0D",
-    "--brand-accent": catalog.conviteira.corDestaque || "#C9A96E"
+    "--brand-accent": catalog.conviteira.corDestaque || "#C9A96E",
+    "--catalog-font-body": selectedFont.bodyFamily,
+    "--catalog-font-display": selectedFont.displayFamily
   } as CSSProperties;
 
   return (
     <main className="public-shell" style={shellStyle}>
       {catalog.conviteira.bannerUrl ? (
-        <div style={{ aspectRatio: "16 / 5", overflow: "hidden", width: "100%" }}>
+        <div className="public-banner">
           <img
             alt=""
             src={catalog.conviteira.bannerUrl}
@@ -56,51 +60,22 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
         </div>
       ) : null}
 
-      <header
-        style={{
-          alignItems: "center",
-          display: "flex",
-          gap: 18,
-          margin: "0 auto",
-          maxWidth: 1120,
-          padding: "28px 16px 18px"
-        }}
-      >
+      <header className="public-header">
         {catalog.conviteira.logoUrl ? (
           <img
             alt=""
+            className="public-logo"
             src={catalog.conviteira.logoUrl}
-            style={{
-              border: "2px solid var(--brand-accent)",
-              borderRadius: "50%",
-              height: 76,
-              objectFit: "cover",
-              width: 76
-            }}
           />
         ) : null}
-        <div style={{ minWidth: 0 }}>
+        <div className="public-brand-copy">
           <h1
-            className="font-display"
-            style={{
-              color: "var(--brand-primary)",
-              fontSize: "clamp(38px, 8vw, 76px)",
-              fontWeight: 500,
-              lineHeight: 0.9,
-              margin: 0,
-              overflowWrap: "anywhere"
-            }}
+            className="font-display public-brand-title"
           >
             {catalog.conviteira.nomeMarca}
           </h1>
           {catalog.conviteira.bio ? (
-            <p
-              style={{
-                color: "color-mix(in srgb, var(--brand-primary), transparent 28%)",
-                margin: "12px 0 0",
-                maxWidth: 680
-              }}
-            >
+            <p className="public-brand-bio">
               {catalog.conviteira.bio}
             </p>
           ) : null}
@@ -109,30 +84,25 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
 
       <nav
         aria-label="Tipos de convite"
-        style={{
-          borderBlock: "1px solid rgba(0,0,0,0.08)",
-          margin: "0 auto",
-          maxWidth: 1120,
-          overflowX: "auto",
-          padding: "0 16px",
-          whiteSpace: "nowrap"
-        }}
+        className="public-tabs"
       >
         <button
+          className="public-tab"
+          data-active={activeTipo === "todos"}
           onClick={() => setActiveTipo("todos")}
-          style={tabStyle(activeTipo === "todos")}
           type="button"
         >
           Todos
         </button>
         {catalog.tipos.map((tipo) => (
           <button
+            className="public-tab"
+            data-active={activeTipo === tipo.id}
             key={tipo.id}
             onClick={() => {
               setActiveTipo(tipo.id);
               setSearch("");
             }}
-            style={tabStyle(activeTipo === tipo.id)}
             type="button"
           >
             {tipo.nomePublico}
@@ -140,18 +110,11 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
         ))}
       </nav>
 
-      <section style={{ margin: "0 auto", maxWidth: 1120, padding: "20px 16px 54px" }}>
+      <section className="public-content">
         {activeTipoData?.modoDisplay === "demonstracao" &&
         activeTipoData.descricaoPublica ? (
           <p
-            className="font-display"
-            style={{
-              color: "var(--brand-primary)",
-              fontSize: "clamp(24px, 4vw, 38px)",
-              lineHeight: 1.05,
-              margin: "0 0 18px",
-              maxWidth: 720
-            }}
+            className="font-display public-tipo-description"
           >
             {activeTipoData.descricaoPublica}
           </p>
@@ -160,46 +123,25 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
         {activeTipoData?.modoDisplay === "busca" ? (
           <input
             aria-label="Buscar convite"
+            className="public-search"
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Buscar por nome ou tema"
-            style={{
-              border: "1px solid rgba(0,0,0,0.12)",
-              borderRadius: 4,
-              marginBottom: 18,
-              minHeight: 44,
-              padding: "10px 12px",
-              width: "min(100%, 420px)"
-            }}
             value={search}
           />
         ) : null}
 
         {filteredArtes.length ? (
-          <div
-            style={{
-              display: "grid",
-              gap: 2,
-              gridTemplateColumns: "repeat(auto-fill, minmax(min(46%, 280px), 1fr))"
-            }}
-          >
+          <div className="public-art-grid">
             {filteredArtes.map((arte) => {
-              const cover = arte.midias.find((media) => media.tipo === "imagem") ?? arte.midias[0];
+              const cover =
+                arte.midias.find((media) => media.tipo === "imagem") ??
+                arte.midias[0];
               return (
                 <button
                   aria-label={arte.nome}
+                  className="public-art-card"
                   key={arte.id}
                   onClick={() => setSelectedArte(arte)}
-                  style={{
-                    aspectRatio: "9 / 16",
-                    background: "var(--brand-accent)",
-                    border: 0,
-                    color: "#fff",
-                    display: "grid",
-                    fontSize: 42,
-                    overflow: "hidden",
-                    padding: 0,
-                    placeItems: "center"
-                  }}
                   type="button"
                 >
                   {cover ? (
@@ -212,14 +154,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
             })}
           </div>
         ) : (
-          <div
-            style={{
-              border: "1px solid rgba(0,0,0,0.1)",
-              color: "var(--brand-primary)",
-              padding: 28,
-              textAlign: "center"
-            }}
-          >
+          <div className="public-empty">
             Nenhum convite disponível.
           </div>
         )}
@@ -302,43 +237,20 @@ function ShowroomModal({
 
   return (
     <div
+      className="showroom-backdrop"
       role="presentation"
       onMouseDown={onClose}
-      style={{
-        background: "rgba(0,0,0,0.72)",
-        inset: 0,
-        position: "fixed",
-        zIndex: 100
-      }}
     >
       <section
         aria-modal="true"
         className="showroom-dialog"
         role="dialog"
         onMouseDown={(event) => event.stopPropagation()}
-        style={{
-          background: "#fff",
-          color: "var(--brand-primary)",
-          display: "grid",
-          height: "100%",
-          marginLeft: "auto",
-          maxWidth: 1180,
-          overflow: "auto"
-        }}
       >
         <div
+          className="showroom-media-stage"
           onTouchEnd={handleTouchEnd}
           onTouchStart={(event) => setTouchStart(event.touches[0].clientX)}
-          style={{
-            alignItems: "center",
-            aspectRatio: "9 / 16",
-            background: "#0D0D0D",
-            display: "grid",
-            minHeight: 420,
-            overflow: "hidden",
-            placeItems: "center",
-            position: "relative"
-          }}
         >
           {currentSlide ? (
             <ShowroomMedia media={currentSlide} label={arte.nome} contained />
@@ -350,44 +262,28 @@ function ShowroomModal({
             <>
               <button
                 aria-label="Slide anterior"
+                className="carousel-button carousel-button-left"
                 onClick={() => move(-1)}
-                style={carouselButtonStyle("left")}
                 type="button"
               >
                 <ChevronLeft size={22} aria-hidden="true" />
               </button>
               <button
                 aria-label="Próximo slide"
+                className="carousel-button carousel-button-right"
                 onClick={() => move(1)}
-                style={carouselButtonStyle("right")}
                 type="button"
               >
                 <ChevronRight size={22} aria-hidden="true" />
               </button>
-              <div
-                style={{
-                  bottom: 16,
-                  display: "flex",
-                  gap: 6,
-                  left: "50%",
-                  position: "absolute",
-                  transform: "translateX(-50%)"
-                }}
-              >
+              <div className="showroom-dots">
                 {slides.map((media, index) => (
                   <button
                     aria-label={`Ir para slide ${index + 1}`}
+                    className="showroom-dot"
+                    data-active={index === slide}
                     key={media.id}
                     onClick={() => setSlide(index)}
-                    style={{
-                      background:
-                        index === slide ? "var(--brand-accent)" : "rgba(255,255,255,0.52)",
-                      border: 0,
-                      borderRadius: "50%",
-                      height: 8,
-                      padding: 0,
-                      width: 8
-                    }}
                     type="button"
                   />
                 ))}
@@ -396,68 +292,43 @@ function ShowroomModal({
           ) : null}
         </div>
 
-        <div style={{ display: "grid", gap: 18, padding: 22 }}>
+        <div className="showroom-details">
           <button
             aria-label="Fechar"
+            className="showroom-close"
             onClick={onClose}
-            style={{
-              alignItems: "center",
-              background: "transparent",
-              border: "1px solid rgba(0,0,0,0.12)",
-              borderRadius: 4,
-              display: "inline-flex",
-              height: 36,
-              justifyContent: "center",
-              justifySelf: "end",
-              width: 36
-            }}
             type="button"
           >
             <X size={18} aria-hidden="true" />
           </button>
 
           <div>
-            <p
-              style={{
-                color: "color-mix(in srgb, var(--brand-primary), transparent 42%)",
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                margin: 0,
-                textTransform: "uppercase"
-              }}
-            >
+            <p className="showroom-kicker">
               {arte.tipo?.nomePublico || "Convite"}
             </p>
             <h2
-              className="font-display"
-              style={{
-                fontSize: "clamp(36px, 6vw, 58px)",
-                fontWeight: 500,
-                lineHeight: 0.95,
-                margin: "8px 0 0"
-              }}
+              className="font-display showroom-title"
             >
               {arte.nome}
             </h2>
-            {arte.tema ? <p style={{ margin: "10px 0 0" }}>{arte.tema}</p> : null}
+            {arte.tema ? <p className="showroom-theme">{arte.tema}</p> : null}
           </div>
 
-          <div style={{ display: "grid", gap: 10 }}>
+          <div className="showroom-actions">
             {arte.linkPublicado ? (
               <a
+                className={publicButtonClass(false)}
                 href={arte.linkPublicado}
                 rel="noreferrer"
-                style={publicButtonStyle(false)}
                 target="_blank"
               >
                 <ExternalLink size={17} aria-hidden="true" />
-                Ver convite ao vivo
+                Abrir convite
               </a>
             ) : null}
             <button
+              className={publicButtonClass(true)}
               onClick={() => setFormOpen((current) => !current)}
-              style={publicButtonStyle(true)}
               type="button"
             >
               <MessageCircle size={17} aria-hidden="true" />
@@ -466,7 +337,7 @@ function ShowroomModal({
           </div>
 
           {formOpen ? (
-            <form onSubmit={submit} style={{ display: "grid", gap: 12 }}>
+            <form className="public-order-form" onSubmit={submit}>
               {campos.map((campo) => (
                 <PublicField
                   campo={campo}
@@ -477,7 +348,7 @@ function ShowroomModal({
                   value={values[campo.id] || ""}
                 />
               ))}
-              <button style={publicButtonStyle(true)} type="submit">
+              <button className={publicButtonClass(true)} type="submit">
                 <MessageCircle size={17} aria-hidden="true" />
                 Enviar pedido
               </button>
@@ -500,7 +371,7 @@ function PublicField({
 }) {
   const baseProps = {
     required: Boolean(campo.obrigatorio),
-    style: publicInputStyle,
+    className: "public-input",
     value,
     onChange: (
       event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -508,19 +379,12 @@ function PublicField({
   };
 
   return (
-    <label style={{ display: "grid", gap: 6 }}>
-      <span
-        style={{
-          fontSize: 12,
-          fontWeight: 700,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase"
-        }}
-      >
+    <label className="public-field">
+      <span className="public-field-label">
         {campo.label}
       </span>
       {campo.tipo === "textarea" ? (
-        <textarea {...baseProps} style={{ ...publicInputStyle, minHeight: 88 }} />
+        <textarea {...baseProps} className="public-input public-textarea" />
       ) : campo.tipo === "select" ? (
         <select {...baseProps}>
           <option value="">Selecione</option>
@@ -576,60 +440,11 @@ function ShowroomPlaceholder({ contained = false }: { contained?: boolean }) {
   );
 }
 
-function tabStyle(active: boolean): CSSProperties {
-  return {
-    background: "transparent",
-    border: 0,
-    borderBottom: active ? "2px solid var(--brand-accent)" : "2px solid transparent",
-    color: "var(--brand-primary)",
-    fontWeight: active ? 700 : 500,
-    minHeight: 52,
-    padding: "0 16px"
-  };
+function publicButtonClass(primary: boolean) {
+  return primary
+    ? "public-action public-action-primary"
+    : "public-action public-action-secondary";
 }
-
-function carouselButtonStyle(side: "left" | "right"): CSSProperties {
-  const placement = side === "left" ? { left: 14 } : { right: 14 };
-
-  return {
-    alignItems: "center",
-    background: "rgba(255,255,255,0.9)",
-    border: 0,
-    borderRadius: "50%",
-    display: "inline-flex",
-    height: 42,
-    justifyContent: "center",
-    position: "absolute",
-    top: "50%",
-    transform: "translateY(-50%)",
-    width: 42,
-    ...placement
-  };
-}
-
-function publicButtonStyle(primary: boolean): CSSProperties {
-  return {
-    alignItems: "center",
-    background: primary ? "var(--brand-primary)" : "transparent",
-    border: `1px solid ${primary ? "var(--brand-primary)" : "rgba(0,0,0,0.14)"}`,
-    borderRadius: 4,
-    color: primary ? "#fff" : "var(--brand-primary)",
-    display: "inline-flex",
-    fontWeight: 700,
-    gap: 8,
-    justifyContent: "center",
-    minHeight: 44,
-    padding: "0 14px"
-  };
-}
-
-const publicInputStyle: CSSProperties = {
-  border: "1px solid rgba(0,0,0,0.14)",
-  borderRadius: 4,
-  minHeight: 42,
-  padding: "10px 11px",
-  width: "100%"
-};
 
 function inputType(tipo: CatalogCampo["tipo"]) {
   if (tipo === "data") {

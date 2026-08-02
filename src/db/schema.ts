@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   integer,
   pgTable,
   text,
@@ -20,6 +21,7 @@ export const conviteiras = pgTable("conviteiras", {
   bannerUrl: text("banner_url"),
   corPrincipal: text("cor_principal").default("#0D0D0D"),
   corDestaque: text("cor_destaque").default("#C9A96E"),
+  fonteCatalogo: text("fonte_catalogo").default("editorial"),
   planoAtivo: boolean("plano_ativo").default(false),
   criadoEm: timestamp("criado_em", { withTimezone: true }).defaultNow()
 });
@@ -103,8 +105,51 @@ export const camposPedido = pgTable(
   })
 );
 
+export const pedidos = pgTable(
+  "pedidos",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    conviteiraId: uuid("conviteira_id")
+      .notNull()
+      .references(() => conviteiras.id, { onDelete: "cascade" }),
+    arteId: uuid("arte_id").references(() => artes.id, { onDelete: "set null" }),
+    clienteNome: text("cliente_nome").notNull(),
+    clienteWhatsapp: text("cliente_whatsapp"),
+    tag: text("tag"),
+    arteNome: text("arte_nome"),
+    valorTotal: integer("valor_total").default(0),
+    valorPago: integer("valor_pago").default(0),
+    status: text("status").default("em_aberto"),
+    dataPedido: date("data_pedido").default(sql`CURRENT_DATE`),
+    dataEntrega: date("data_entrega"),
+    observacoes: text("observacoes"),
+    criadoEm: timestamp("criado_em", { withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    statusCheck: check(
+      "pedidos_status_check",
+      sql`${table.status} IN ('em_aberto','sinal_pago','pago','cancelado')`
+    )
+  })
+);
+
+export const gastosCaixa = pgTable("gastos_caixa", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  conviteiraId: uuid("conviteira_id")
+    .notNull()
+    .references(() => conviteiras.id, { onDelete: "cascade" }),
+  descricao: text("descricao").notNull(),
+  categoria: text("categoria"),
+  valor: integer("valor").default(0),
+  dataGasto: date("data_gasto").default(sql`CURRENT_DATE`),
+  observacoes: text("observacoes"),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).defaultNow()
+});
+
 export type Conviteira = typeof conviteiras.$inferSelect;
 export type TipoConvite = typeof tiposConvite.$inferSelect;
 export type Arte = typeof artes.$inferSelect;
 export type ArteMidia = typeof arteMidias.$inferSelect;
 export type CampoPedido = typeof camposPedido.$inferSelect;
+export type Pedido = typeof pedidos.$inferSelect;
+export type GastoCaixa = typeof gastosCaixa.$inferSelect;

@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS conviteiras (
   banner_url TEXT,
   cor_principal TEXT DEFAULT '#0D0D0D',
   cor_destaque TEXT DEFAULT '#C9A96E',
+  fonte_catalogo TEXT DEFAULT 'editorial',
   plano_ativo BOOLEAN DEFAULT false,
   criado_em TIMESTAMPTZ DEFAULT NOW()
 );
@@ -58,4 +59,32 @@ CREATE TABLE IF NOT EXISTS campos_pedido (
   opcoes TEXT[],
   obrigatorio BOOLEAN DEFAULT true,
   ordem INT DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS pedidos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conviteira_id UUID NOT NULL REFERENCES conviteiras(id) ON DELETE CASCADE,
+  arte_id UUID REFERENCES artes(id) ON DELETE SET NULL,
+  cliente_nome TEXT NOT NULL,
+  cliente_whatsapp TEXT,
+  tag TEXT,
+  arte_nome TEXT,
+  valor_total INT DEFAULT 0,
+  valor_pago INT DEFAULT 0,
+  status TEXT DEFAULT 'em_aberto' CHECK (status IN ('em_aberto','sinal_pago','pago','cancelado')),
+  data_pedido DATE DEFAULT CURRENT_DATE,
+  data_entrega DATE,
+  observacoes TEXT,
+  criado_em TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS gastos_caixa (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conviteira_id UUID NOT NULL REFERENCES conviteiras(id) ON DELETE CASCADE,
+  descricao TEXT NOT NULL,
+  categoria TEXT,
+  valor INT DEFAULT 0,
+  data_gasto DATE DEFAULT CURRENT_DATE,
+  observacoes TEXT,
+  criado_em TIMESTAMPTZ DEFAULT NOW()
 );

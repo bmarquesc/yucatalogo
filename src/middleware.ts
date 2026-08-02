@@ -15,7 +15,18 @@ const isProtectedRoute = createRouteMatcher([
   "/api/campos(.*)"
 ]);
 
+function isLocalDevAuthEnabled() {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.DEV_AUTH_BYPASS === "true"
+  );
+}
+
 export default clerkMiddleware((auth, request) => {
+  if (isLocalDevAuthEnabled()) {
+    return NextResponse.next();
+  }
+
   if (!isPublicRoute(request) && isProtectedRoute(request)) {
     const { userId } = auth();
 
@@ -25,6 +36,8 @@ export default clerkMiddleware((auth, request) => {
       return NextResponse.redirect(signInUrl);
     }
   }
+
+  return NextResponse.next();
 });
 
 export const config = {
