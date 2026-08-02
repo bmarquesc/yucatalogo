@@ -4,7 +4,9 @@ import {
   CalendarDays,
   Copy,
   ExternalLink,
+  FileText,
   Loader2,
+  MessageCircle,
   Pencil,
   Plus,
   ReceiptText,
@@ -59,6 +61,8 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
   const [pedidoOpen, setPedidoOpen] = useState(false);
   const [gastoOpen, setGastoOpen] = useState(false);
   const [editingPedidoId, setEditingPedidoId] = useState<string | null>(null);
+  const [confirmationPedido, setConfirmationPedido] = useState<CaixaPedido | null>(null);
+  const [confirmationText, setConfirmationText] = useState("");
   const [pedidoForm, setPedidoForm] = useState(emptyPedido);
   const [gastoForm, setGastoForm] = useState(emptyGasto);
   const [arteSearch, setArteSearch] = useState("");
@@ -169,6 +173,16 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
     setArteSearch("");
   }
 
+  function openConfirmation(pedido: CaixaPedido) {
+    setConfirmationPedido(pedido);
+    setConfirmationText(buildPedidoConfirmationText(pedido));
+  }
+
+  function closeConfirmation() {
+    setConfirmationPedido(null);
+    setConfirmationText("");
+  }
+
   async function copyProductionLink() {
     if (!productionSlug) {
       return;
@@ -184,9 +198,34 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
     }
   }
 
+  async function copyConfirmationText() {
+    try {
+      await navigator.clipboard.writeText(confirmationText);
+      notify("Confirmação copiada.");
+    } catch {
+      notify("Não foi possível copiar a confirmação.", "error");
+    }
+  }
+
+  function openConfirmationWhatsapp() {
+    const whatsapp = normalizeWhatsappNumber(confirmationPedido?.clienteWhatsapp);
+
+    if (!whatsapp) {
+      notify("Informe o WhatsApp da cliente no pedido.", "error");
+      return;
+    }
+
+    window.open(
+      `https://wa.me/${whatsapp}?text=${encodeURIComponent(confirmationText)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }
+
   async function submitPedido(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
+    const isEditing = Boolean(editingPedidoId);
 
     const response = await fetch(
       editingPedidoId
@@ -219,8 +258,13 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
       return;
     }
 
-    notify(editingPedidoId ? "Pedido atualizado." : "Pedido cadastrado.");
+    const data = (await response.json()) as { pedido: CaixaPedido };
+
+    notify(isEditing ? "Pedido atualizado." : "Pedido cadastrado.");
     closePedidoModal();
+    if (!isEditing) {
+      openConfirmation(data.pedido);
+    }
     await load();
   }
 
@@ -406,6 +450,14 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
                         <strong>{formatMoney(pedido.valorTotal ?? 0)}</strong>
                         <span>{formatMoney(pedido.valorPago ?? 0)} recebido</span>
                         <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            className="icon-button"
+                            onClick={() => openConfirmation(pedido)}
+                            title="Gerar confirmação para cliente"
+                            type="button"
+                          >
+                            <FileText size={16} aria-hidden="true" />
+                          </button>
                           <button
                             className="icon-button"
                             onClick={() => openEditPedido(pedido)}
@@ -833,6 +885,47 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
           </form>
         </Modal>
       ) : null}
+
+      {confirmationPedido ? (
+        <Modal title="Confirmação para cliente" onClose={closeConfirmation}>
+          <div className="grid-panel">
+            <label className="field">
+              <span className="form-label">Mensagem</span>
+              <textarea
+                className="textarea"
+                onChange={(event) => setConfirmationText(event.target.value)}
+                style={{ minHeight: 320 }}
+                value={confirmationText}
+              />
+            </label>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 10,
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))"
+              }}
+            >
+              <button
+                className="button secondary"
+                onClick={copyConfirmationText}
+                type="button"
+              >
+                <Copy size={17} aria-hidden="true" />
+                Copiar texto
+              </button>
+              <button
+                className="button"
+                onClick={openConfirmationWhatsapp}
+                type="button"
+              >
+                <MessageCircle size={17} aria-hidden="true" />
+                Abrir WhatsApp
+              </button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
     </section>
   );
 }
@@ -911,6 +1004,35 @@ function normalizeStatus(status: CaixaPedido["status"]): StatusPedido {
   return "em_aberto";
 }
 
+function buildPedidoConfirmationText(pedido: CaixaPedido) {
+  const valorTotal = pedido.valorTotal ?? 0;
+  const valorPago = pedido.valorPago ?? 0;
+  const valorRestante = Math.max(valorTotal - valorPago, 0);
+  const observacoes = pedido.observacoes?.trim();
+  const lines = [
+    `Olá, ${pedido.clienteNome}! Tudo bem?`,
+    "",
+    "Segue a confirmação do seu pedido para você conferir:",
+    "",
+    `Cliente: ${pedido.clienteNome}`,
+    `Pedido: ${pedido.arteNome || "Arte ou serviço não informado"}`,
+    `Data do pedido: ${formatDate(pedido.dataPedido)}`,
+    `Data combinada: ${formatDate(pedido.dataEntrega)}`,
+    `Valor total: ${formatMoney(valorTotal)}`,
+    `Valor pago: ${formatMoney(valorPago)}`,
+    `Valor a pagar: ${formatMoney(valorRestante)}`,
+    `Status do pagamento: ${statusLabel(pedido.status)}`
+  ];
+
+  if (observacoes) {
+    lines.push("", "Informações do convite:", observacoes);
+  }
+
+  lines.push("", "Se estiver tudo certinho, me responde confirmando por aqui, por favor.");
+
+  return lines.join("\n");
+}
+
 function formatArtePedidoNome(arte: CatalogArte | null | undefined, fallback: string) {
   const nome = arte?.nome?.trim();
   const tipo = (arte?.tipo?.nomePublico || arte?.tipo?.nome || "").trim();
@@ -932,6 +1054,24 @@ function normalizeSearch(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
+}
+
+function normalizeWhatsappNumber(value: string | null | undefined) {
+  const digits = value?.replace(/\D/g, "") ?? "";
+
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.startsWith("55")) {
+    return digits;
+  }
+
+  if (digits.length === 10 || digits.length === 11) {
+    return `55${digits}`;
+  }
+
+  return digits;
 }
 
 function formatDate(value: string | null | undefined) {
