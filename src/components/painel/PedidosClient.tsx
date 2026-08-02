@@ -2,10 +2,13 @@
 
 import {
   CalendarDays,
+  Copy,
+  ExternalLink,
   Loader2,
   Plus,
   ReceiptText,
   Save,
+  Search,
   Trash2,
   Wallet
 } from "lucide-react";
@@ -45,7 +48,7 @@ const emptyGasto = {
   observacoes: ""
 };
 
-export function PedidosClient() {
+export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
   const notify = useToast();
   const [mes, setMes] = useState(() => today().slice(0, 7));
   const [caixa, setCaixa] = useState<CaixaData | null>(null);
@@ -56,6 +59,36 @@ export function PedidosClient() {
   const [gastoOpen, setGastoOpen] = useState(false);
   const [pedidoForm, setPedidoForm] = useState(emptyPedido);
   const [gastoForm, setGastoForm] = useState(emptyGasto);
+  const [arteSearch, setArteSearch] = useState("");
+
+  const filteredArtes = useMemo(() => {
+    const term = normalizeSearch(arteSearch);
+
+    if (!term) {
+      return artes;
+    }
+
+    return artes.filter((arte) =>
+      normalizeSearch(
+        [arte.nome, arte.tema, arte.tipo?.nomePublico, arte.tipo?.nome]
+          .filter(Boolean)
+          .join(" ")
+      ).includes(term)
+    );
+  }, [artes, arteSearch]);
+
+  const arteOptions = useMemo(() => {
+    const selectedArte = artes.find((arte) => arte.id === pedidoForm.arteId);
+
+    if (
+      selectedArte &&
+      !filteredArtes.some((arte) => arte.id === selectedArte.id)
+    ) {
+      return [selectedArte, ...filteredArtes];
+    }
+
+    return filteredArtes;
+  }, [artes, filteredArtes, pedidoForm.arteId]);
 
   const proximasEntregas = useMemo(() => {
     const pedidos = caixa?.pedidos ?? [];
@@ -98,6 +131,21 @@ export function PedidosClient() {
     }));
   }
 
+  async function copyProductionLink() {
+    if (!productionSlug) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/producao/${productionSlug}`
+      );
+      notify("Link da equipe copiado.");
+    } catch {
+      notify("Não foi possível copiar o link.", "error");
+    }
+  }
+
   async function submitPedido(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -130,6 +178,7 @@ export function PedidosClient() {
 
     notify("Pedido cadastrado.");
     setPedidoForm(emptyPedido);
+    setArteSearch("");
     setPedidoOpen(false);
     await load();
   }
@@ -205,6 +254,27 @@ export function PedidosClient() {
           </p>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+          {productionSlug ? (
+            <>
+              <a
+                className="button secondary"
+                href={`/producao/${productionSlug}`}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <ExternalLink size={17} aria-hidden="true" />
+                Fila da equipe
+              </a>
+              <button
+                className="button secondary"
+                onClick={copyProductionLink}
+                type="button"
+              >
+                <Copy size={17} aria-hidden="true" />
+                Copiar link da equipe
+              </button>
+            </>
+          ) : null}
           <input
             aria-label="Mês do caixa"
             className="input"
@@ -379,7 +449,13 @@ export function PedidosClient() {
       )}
 
       {pedidoOpen ? (
-        <Modal title="Novo pedido" onClose={() => setPedidoOpen(false)}>
+        <Modal
+          title="Novo pedido"
+          onClose={() => {
+            setPedidoOpen(false);
+            setArteSearch("");
+          }}
+        >
           <form className="grid-panel" onSubmit={submitPedido}>
             <div
               style={{
@@ -424,6 +500,30 @@ export function PedidosClient() {
             </label>
 
             <label className="field">
+              <span className="form-label">Buscar convite</span>
+              <div style={{ position: "relative" }}>
+                <Search
+                  aria-hidden="true"
+                  size={16}
+                  style={{
+                    color: "var(--mid)",
+                    left: 12,
+                    position: "absolute",
+                    top: "50%",
+                    transform: "translateY(-50%)"
+                  }}
+                />
+                <input
+                  className="input"
+                  onChange={(event) => setArteSearch(event.target.value)}
+                  placeholder="Digite tema, nome ou tipo"
+                  style={{ paddingLeft: 36 }}
+                  value={arteSearch}
+                />
+              </div>
+            </label>
+
+            <label className="field">
               <span className="form-label">Arte</span>
               <select
                 className="select"
@@ -431,12 +531,18 @@ export function PedidosClient() {
                 value={pedidoForm.arteId}
               >
                 <option value="">Sem arte vinculada</option>
-                {artes.map((arte) => (
+                {arteOptions.map((arte) => (
                   <option key={arte.id} value={arte.id}>
                     {arte.nome}
+                    {arte.tema ? ` · ${arte.tema}` : ""}
                   </option>
                 ))}
               </select>
+              <span style={{ color: "var(--mid)", fontSize: 13 }}>
+                {filteredArtes.length} convite
+                {filteredArtes.length === 1 ? "" : "s"} encontrado
+                {filteredArtes.length === 1 ? "" : "s"}
+              </span>
             </label>
 
             <label className="field">
@@ -697,6 +803,14 @@ function moneyToCents(value: string) {
   }
 
   return Math.round(numberValue * 100);
+}
+
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 function formatDate(value: string | null | undefined) {

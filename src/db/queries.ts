@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import {
@@ -20,6 +20,7 @@ import type {
   PublicCatalog
 } from "@/types/catalog";
 import type { CaixaData, CaixaGasto, CaixaPedido } from "@/types/caixa";
+import type { ProducaoData } from "@/types/producao";
 
 export async function getConviteiraByUserId(userId: string) {
   const [conviteira] = await getDb()
@@ -229,6 +230,95 @@ export async function getCaixaForConviteira(
   };
 }
 
+export async function getProducaoForTag(
+  slug: string,
+  tag: string
+): Promise<ProducaoData | null> {
+  const conviteira = await getConviteiraBySlug(slug);
+
+  if (!conviteira) {
+    return null;
+  }
+
+  const normalizedTag = tag.trim();
+  const pedidoRows =
+    normalizedTag.length >= 2
+      ? (
+          await getDb()
+            .select()
+            .from(pedidos)
+            .where(
+              and(
+                eq(pedidos.conviteiraId, conviteira.id),
+                ne(pedidos.status, "cancelado")
+              )
+            )
+            .orderBy(asc(pedidos.dataEntrega), asc(pedidos.clienteNome))
+        ).filter((pedido) => matchesTag(pedido.tag, normalizedTag))
+      : [];
+
+  const arteIds = Array.from(
+    new Set(
+      pedidoRows
+        .map((pedido) => pedido.arteId)
+        .filter((arteId): arteId is string => Boolean(arteId))
+    )
+  );
+
+  const [arteRows, tipoRows, mediaRows] = await Promise.all([
+    arteIds.length
+      ? getDb()
+          .select()
+          .from(artes)
+          .where(inArray(artes.id, arteIds))
+      : [],
+    getTiposForConviteira(conviteira.id),
+    arteIds.length
+      ? getDb()
+          .select()
+          .from(arteMidias)
+          .where(inArray(arteMidias.arteId, arteIds))
+          .orderBy(asc(arteMidias.ordem))
+      : []
+  ]);
+
+  const arteById = new Map(arteRows.map((arte) => [arte.id, arte]));
+  const tipoById = new Map(tipoRows.map((tipo) => [tipo.id, tipo]));
+  const mediaByArte = groupMediaByArte(mediaRows);
+
+  return {
+    conviteira: {
+      slug: conviteira.slug,
+      nomeMarca: conviteira.nomeMarca,
+      logoUrl: conviteira.logoUrl,
+      corPrincipal: conviteira.corPrincipal,
+      corDestaque: conviteira.corDestaque
+    },
+    tag: normalizedTag,
+    pedidos: pedidoRows.map((pedido) => {
+      const arte = pedido.arteId ? arteById.get(pedido.arteId) : null;
+      const tipo = arte?.tipoId ? tipoById.get(arte.tipoId) : null;
+      const media = arte ? mediaByArte.get(arte.id) ?? [] : [];
+      const cover =
+        media.find((item) => item.tipo === "imagem") ?? media[0] ?? null;
+
+      return {
+        id: pedido.id,
+        clienteNome: pedido.clienteNome,
+        tag: pedido.tag,
+        arteNome: pedido.arteNome || arte?.nome || null,
+        arteTema: arte?.tema ?? null,
+        tipoNomePublico: tipo?.nomePublico ?? null,
+        linkPublicado: arte?.linkPublicado ?? null,
+        midiaUrl: cover?.url ?? null,
+        dataPedido: pedido.dataPedido,
+        dataEntrega: pedido.dataEntrega,
+        observacoes: pedido.observacoes
+      };
+    })
+  };
+}
+
 export async function getAdminArtes(conviteiraId: string): Promise<CatalogArte[]> {
   const [arteRows, tipoRows] = await Promise.all([
     getDb()
@@ -380,6 +470,21 @@ function normalizeMonth(month: string) {
 
 function isInMonth(date: string | null | undefined, month: string) {
   return Boolean(date?.startsWith(month));
+}
+
+function matchesTag(tag: string | null, query: string) {
+  if (!tag) {
+    return false;
+  }
+
+  return normalizeText(tag).includes(normalizeText(query));
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function sumCurrency(values: Array<number | null | undefined>) {
