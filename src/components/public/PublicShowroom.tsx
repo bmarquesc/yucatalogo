@@ -23,6 +23,56 @@ import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { getCatalogFontOption } from "@/lib/catalogFonts";
 import type { CatalogCampo, PublicCatalog } from "@/types/catalog";
 
+type PublicOrderField = Pick<
+  CatalogCampo,
+  "id" | "label" | "tipo" | "opcoes" | "obrigatorio"
+>;
+
+const defaultPublicOrderFields: PublicOrderField[] = [
+  {
+    id: "nome-aniversariante",
+    label: "Nome da aniversariante",
+    tipo: "texto",
+    opcoes: null,
+    obrigatorio: true
+  },
+  {
+    id: "data-evento",
+    label: "Data do evento",
+    tipo: "data",
+    opcoes: null,
+    obrigatorio: true
+  },
+  {
+    id: "horario",
+    label: "Horário",
+    tipo: "hora",
+    opcoes: null,
+    obrigatorio: true
+  },
+  {
+    id: "local-evento",
+    label: "Local do evento",
+    tipo: "textarea",
+    opcoes: null,
+    obrigatorio: false
+  },
+  {
+    id: "whatsapp-mae",
+    label: "WhatsApp da mãe da aniversariante",
+    tipo: "telefone",
+    opcoes: null,
+    obrigatorio: true
+  },
+  {
+    id: "observacoes",
+    label: "Observações",
+    tipo: "textarea",
+    opcoes: null,
+    obrigatorio: false
+  }
+];
+
 export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
   const [activeTipo, setActiveTipo] = useState("todos");
   const [search, setSearch] = useState("");
@@ -202,15 +252,16 @@ function ShowroomModal({
   const [slide, setSlide] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [expandedSlide, setExpandedSlide] = useState<number | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
+  const [orderOpen, setOrderOpen] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const slides = arte.midias;
   const currentSlide = slides[slide];
+  const orderFields = useMemo(() => buildPublicOrderFields(campos), [campos]);
 
   useEffect(() => {
     setSlide(0);
     setExpandedSlide(null);
-    setFormOpen(false);
+    setOrderOpen(false);
     setValues({});
   }, [arte.id]);
 
@@ -242,12 +293,13 @@ function ShowroomModal({
       `*Pedido - ${nomeMarca}*`,
       "",
       `*Arte:* ${arte.nome}${tipo}`,
-      ...campos
+      ...orderFields
         .filter((campo) => values[campo.id])
         .map((campo) => `*${campo.label}:* ${formatCampoValue(campo, values[campo.id])}`)
     ];
 
     window.open(buildWhatsAppUrl(whatsapp, lines.join("\n")), "_blank", "noopener");
+    setOrderOpen(false);
   }
 
   return (
@@ -363,34 +415,27 @@ function ShowroomModal({
             ) : null}
             <button
               className={publicButtonClass(true)}
-              onClick={() => setFormOpen((current) => !current)}
+              onClick={() => setOrderOpen(true)}
               type="button"
             >
               <MessageCircle size={17} aria-hidden="true" />
               Quero esse convite
             </button>
           </div>
-
-          {formOpen ? (
-            <form className="public-order-form" onSubmit={submit}>
-              {campos.map((campo) => (
-                <PublicField
-                  campo={campo}
-                  key={campo.id}
-                  onChange={(value) =>
-                    setValues((current) => ({ ...current, [campo.id]: value }))
-                  }
-                  value={values[campo.id] || ""}
-                />
-              ))}
-              <button className={publicButtonClass(true)} type="submit">
-                <MessageCircle size={17} aria-hidden="true" />
-                Enviar pedido
-              </button>
-            </form>
-          ) : null}
         </div>
       </section>
+
+      {orderOpen ? (
+        <PublicOrderPopup
+          fields={orderFields}
+          onChange={(id, value) =>
+            setValues((current) => ({ ...current, [id]: value }))
+          }
+          onClose={() => setOrderOpen(false)}
+          onSubmit={submit}
+          values={values}
+        />
+      ) : null}
 
       {expandedSlide !== null && slides.length ? (
         <ExpandedShowroomMedia
@@ -531,12 +576,71 @@ function ExpandedShowroomMedia({
   );
 }
 
+function PublicOrderPopup({
+  fields,
+  onChange,
+  onClose,
+  onSubmit,
+  values
+}: {
+  fields: PublicOrderField[];
+  onChange: (id: string, value: string) => void;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  values: Record<string, string>;
+}) {
+  return (
+    <div
+      className="public-order-popup-backdrop"
+      onMouseDown={onClose}
+      role="presentation"
+    >
+      <section
+        aria-modal="true"
+        className="public-order-popup"
+        onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <header className="public-order-popup-header">
+          <div>
+            <p className="showroom-kicker">Pedido</p>
+            <h2 className="public-order-popup-title">Quero esse convite</h2>
+          </div>
+          <button
+            aria-label="Fechar pedido"
+            className="showroom-lightbox-close public-order-popup-close"
+            onClick={onClose}
+            type="button"
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        </header>
+
+        <form className="public-order-form" onSubmit={onSubmit}>
+          {fields.map((campo) => (
+            <PublicField
+              campo={campo}
+              key={campo.id}
+              onChange={(value) => onChange(campo.id, value)}
+              value={values[campo.id] || ""}
+            />
+          ))}
+          <button className={publicButtonClass(true)} type="submit">
+            <MessageCircle size={17} aria-hidden="true" />
+            Enviar pedido
+          </button>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 function PublicField({
   campo,
   onChange,
   value
 }: {
-  campo: CatalogCampo;
+  campo: PublicOrderField;
   onChange: (value: string) => void;
   value: string;
 }) {
@@ -632,7 +736,7 @@ function inputType(tipo: CatalogCampo["tipo"]) {
   return "text";
 }
 
-function formatCampoValue(campo: CatalogCampo, value: string) {
+function formatCampoValue(campo: PublicOrderField, value: string) {
   if (campo.tipo !== "data") {
     return value;
   }
@@ -642,6 +746,48 @@ function formatCampoValue(campo: CatalogCampo, value: string) {
     month: "2-digit",
     year: "numeric"
   });
+}
+
+function buildPublicOrderFields(campos: CatalogCampo[]): PublicOrderField[] {
+  const source = campos.length ? campos : defaultPublicOrderFields;
+
+  return source.map((campo) => ({
+    id: campo.id,
+    label: publicOrderLabel(campo.label),
+    tipo: campo.tipo,
+    opcoes: campo.opcoes,
+    obrigatorio: campo.obrigatorio
+  }));
+}
+
+function publicOrderLabel(label: string) {
+  const normalized = normalizeCatalogSearch(label);
+
+  if (normalized.includes("aniversariante")) {
+    return "Nome da aniversariante";
+  }
+
+  if (normalized.includes("data") && normalized.includes("evento")) {
+    return "Data do evento";
+  }
+
+  if (normalized.includes("horario")) {
+    return "Horário";
+  }
+
+  if (normalized.includes("local")) {
+    return "Local do evento";
+  }
+
+  if (normalized.includes("whatsapp") || normalized.includes("telefone")) {
+    return "WhatsApp da mãe da aniversariante";
+  }
+
+  if (normalized.includes("observ")) {
+    return "Observações";
+  }
+
+  return label;
 }
 
 function normalizeCatalogSearch(value: string) {
