@@ -10,6 +10,10 @@ export const ORDER_SERVICE_OPTIONS = [
   {
     id: "confirmacao_presenca_personalizada",
     label: "Confirmação de presença personalizada"
+  },
+  {
+    id: "mascote",
+    label: "Mascote"
   }
 ] as const;
 
