@@ -615,7 +615,7 @@ export function CatalogoClient() {
             </p>
 
             <label className="field">
-              <span className="form-label">Link do Canva/PEC</span>
+              <span className="form-label">Link do convite no Canva (editável)</span>
               <input
                 className="input"
                 onChange={(event) =>
@@ -624,10 +624,13 @@ export function CatalogoClient() {
                 type="url"
                 value={form.canvaUrl}
               />
+              <span style={{ color: "var(--mid)", fontSize: 13 }}>
+                Esse link aparece somente para você, não aparece para as clientes.
+              </span>
             </label>
 
             <label className="field">
-              <span className="form-label">URL do botão do convite</span>
+              <span className="form-label">Link do convite publicado</span>
               <input
                 className="input"
                 onChange={(event) =>
