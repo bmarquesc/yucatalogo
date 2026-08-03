@@ -18,6 +18,8 @@ export const ORDER_SERVICE_OPTIONS = [
 ] as const;
 
 export type OrderServiceId = (typeof ORDER_SERVICE_OPTIONS)[number]["id"];
+export const OTHER_ORDER_SERVICE_ID = "outros";
+export type OrderServiceValueMap = Record<string, number>;
 
 const serviceLabels = new Map(
   ORDER_SERVICE_OPTIONS.map((service) => [service.id, service.label])
@@ -43,23 +45,86 @@ export function sanitizeOrderServices(value: unknown): OrderServiceId[] {
   return Array.from(selected);
 }
 
+export function sanitizeOrderServiceValues(
+  value: unknown,
+  services: Array<string | null | undefined> | null | undefined,
+  otherServices?: string | null
+): OrderServiceValueMap | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const validKeys = new Set<string>(sanitizeOrderServices(services));
+
+  if (otherServices?.trim()) {
+    validKeys.add(OTHER_ORDER_SERVICE_ID);
+  }
+
+  const sanitized: OrderServiceValueMap = {};
+
+  for (const [key, rawValue] of Object.entries(value)) {
+    if (!validKeys.has(key) || typeof rawValue !== "number") {
+      continue;
+    }
+
+    if (Number.isFinite(rawValue) && rawValue > 0) {
+      sanitized[key] = Math.round(rawValue);
+    }
+  }
+
+  return Object.keys(sanitized).length ? sanitized : null;
+}
+
 export function formatOrderService(value: string) {
   return serviceLabels.get(value as OrderServiceId) || "";
 }
 
 export function formatOrderServices(
   services: Array<string | null | undefined> | null | undefined,
-  otherServices?: string | null
+  otherServices?: string | null,
+  values?: OrderServiceValueMap | null
 ) {
   const labels: string[] =
     services
-      ?.map((service) => (service ? formatOrderService(service) : ""))
+      ?.map((service) => {
+        if (!service) {
+          return "";
+        }
+
+        const label = formatOrderService(service);
+
+        return label ? formatServiceWithValue(label, values?.[service]) : "";
+      })
       .filter(Boolean) ?? [];
   const other = otherServices?.trim();
 
   if (other) {
-    labels.push(`Outros serviços: ${other}`);
+    labels.push(
+      formatServiceWithValue(`Outros serviços: ${other}`, values?.[OTHER_ORDER_SERVICE_ID])
+    );
   }
 
   return labels;
+}
+
+export function sumOrderServiceValues(values: OrderServiceValueMap | null | undefined) {
+  return Object.values(values ?? {}).reduce(
+    (total, value) => total + (Number.isFinite(value) ? value : 0),
+    0
+  );
+}
+
+function formatServiceWithValue(label: string, value: number | null | undefined) {
+  if (!value || value <= 0) {
+    return label;
+  }
+
+  return `${label} - ${formatServiceMoney(value)}`;
+}
+
+function formatServiceMoney(cents: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    currency: "BRL",
+    style: "currency"
+  }).format(cents / 100);
 }

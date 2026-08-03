@@ -121,6 +121,7 @@ export async function migrateDatabase() {
       status_producao TEXT DEFAULT 'a_fazer' CHECK (status_producao IN ('a_fazer','fazendo','pronto_enviado')),
       servicos_adicionais TEXT[],
       servicos_outros TEXT,
+      servicos_valores JSONB,
       data_pedido DATE DEFAULT CURRENT_DATE,
       data_entrega DATE,
       observacoes TEXT,
@@ -151,6 +152,11 @@ export async function migrateDatabase() {
   await db.execute(sql`
     ALTER TABLE pedidos
     ADD COLUMN IF NOT EXISTS servicos_outros TEXT
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE pedidos
+    ADD COLUMN IF NOT EXISTS servicos_valores JSONB
   `);
 
   await db.execute(sql`

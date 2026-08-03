@@ -14,6 +14,7 @@ export type CaixaPedido = {
   status: StatusPedido | string | null;
   servicosAdicionais: string[] | null;
   servicosOutros: string | null;
+  servicosValores: Record<string, number> | null;
   dataPedido: string | null;
   dataEntrega: string | null;
   observacoes: string | null;

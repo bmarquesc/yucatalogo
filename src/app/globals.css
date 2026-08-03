@@ -560,8 +560,9 @@ button {
   background: #fff;
   border: 1px solid var(--rule);
   border-radius: 4px;
-  display: flex;
+  display: grid;
   gap: 9px;
+  grid-template-columns: auto minmax(0, 1fr);
   min-height: 42px;
   padding: 10px;
 }
@@ -571,6 +572,28 @@ button {
   font-size: 13px;
   font-weight: 700;
   line-height: 1.25;
+}
+
+.order-service-value {
+  grid-column: 2;
+}
+
+.order-service-total {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.order-service-total span {
+  color: var(--mid);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .public-shell {

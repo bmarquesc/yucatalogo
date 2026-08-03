@@ -466,6 +466,7 @@ export async function getProducaoForTag(
       midiaUrl: cover?.url ?? null,
       servicosAdicionais: pedido.servicosAdicionais,
       servicosOutros: pedido.servicosOutros,
+      servicosValores: pedido.servicosValores,
       dataPedido: pedido.dataPedido,
       dataEntrega: pedido.dataEntrega,
       observacoes: pedido.observacoes
@@ -699,6 +700,7 @@ function toCaixaPedido(pedido: typeof pedidos.$inferSelect): CaixaPedido {
     status: pedido.status,
     servicosAdicionais: pedido.servicosAdicionais,
     servicosOutros: pedido.servicosOutros,
+    servicosValores: pedido.servicosValores,
     dataPedido: pedido.dataPedido,
     dataEntrega: pedido.dataEntrega,
     observacoes: pedido.observacoes

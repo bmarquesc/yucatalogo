@@ -21,8 +21,11 @@ import { Modal } from "@/components/painel/Modal";
 import { useToast } from "@/components/painel/ToastProvider";
 import {
   formatOrderServices,
+  OTHER_ORDER_SERVICE_ID,
   ORDER_SERVICE_OPTIONS,
   sanitizeOrderServices,
+  sumOrderServiceValues,
+  type OrderServiceValueMap,
   type OrderServiceId
 } from "@/lib/orderServices";
 import type {
@@ -53,11 +56,12 @@ const emptyPedido = {
   arteId: "",
   arteNome: "",
   origem: "balcao" as OrigemPedido,
-  valorTotal: "",
+  valorTotal: "0,00",
   valorPago: "",
   status: "em_aberto" as StatusPedido,
   servicosAdicionais: [] as OrderServiceId[],
   servicosOutros: "",
+  servicosValores: {} as Record<string, string>,
   dataPedido: today(),
   dataEntrega: "",
   observacoes: ""
@@ -128,6 +132,24 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
       (pedido) => normalizeOrigem(pedido.origem) === origemFiltro
     );
   }, [caixa?.pedidos, origemFiltro]);
+  const effectiveServiceValues = useMemo(
+    () =>
+      filterServiceValueInputs(
+        pedidoForm.servicosValores,
+        pedidoForm.servicosAdicionais,
+        pedidoForm.servicosOutros
+      ),
+    [
+      pedidoForm.servicosAdicionais,
+      pedidoForm.servicosOutros,
+      pedidoForm.servicosValores
+    ]
+  );
+  const servicosValorTotal = useMemo(
+    () => sumServiceValueInputs(effectiveServiceValues),
+    [effectiveServiceValues]
+  );
+  const pedidoTotalPreview = moneyToCents(pedidoForm.valorTotal) + servicosValorTotal;
 
   async function load() {
     setLoading(true);
@@ -179,7 +201,20 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
       ...current,
       servicosAdicionais: selected
         ? Array.from(new Set([...current.servicosAdicionais, serviceId]))
-        : current.servicosAdicionais.filter((item) => item !== serviceId)
+        : current.servicosAdicionais.filter((item) => item !== serviceId),
+      servicosValores: selected
+        ? current.servicosValores
+        : removeServiceValue(current.servicosValores, serviceId)
+    }));
+  }
+
+  function updatePedidoServicoValor(serviceId: string, value: string) {
+    setPedidoForm((current) => ({
+      ...current,
+      servicosValores: {
+        ...current.servicosValores,
+        [serviceId]: value
+      }
     }));
   }
 
@@ -191,6 +226,9 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
   }
 
   function openEditPedido(pedido: CaixaPedido) {
+    const servicosValores = serviceValuesToInput(pedido.servicosValores);
+    const valorServicos = sumOrderServiceValues(pedido.servicosValores);
+
     setEditingPedidoId(pedido.id);
     setPedidoForm({
       clienteNome: pedido.clienteNome,
@@ -199,11 +237,12 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
       arteId: pedido.arteId ?? "",
       arteNome: pedido.arteNome ?? "",
       origem: normalizeOrigem(pedido.origem),
-      valorTotal: centsToInput(pedido.valorTotal),
+      valorTotal: centsToInput(Math.max((pedido.valorTotal ?? 0) - valorServicos, 0)),
       valorPago: centsToInput(pedido.valorPago),
       status: normalizeStatus(pedido.status),
       servicosAdicionais: sanitizeOrderServices(pedido.servicosAdicionais),
       servicosOutros: pedido.servicosOutros ?? "",
+      servicosValores,
       dataPedido: pedido.dataPedido ?? today(),
       dataEntrega: pedido.dataEntrega ?? "",
       observacoes: pedido.observacoes ?? ""
@@ -287,11 +326,14 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
           arteId: pedidoForm.arteId || null,
           arteNome: pedidoForm.arteNome,
           origem: pedidoForm.origem,
-          valorTotal: moneyToCents(pedidoForm.valorTotal),
+          valorTotal:
+            moneyToCents(pedidoForm.valorTotal) +
+            sumServiceValueInputs(effectiveServiceValues),
           valorPago: moneyToCents(pedidoForm.valorPago),
           status: pedidoForm.status,
           servicosAdicionais: pedidoForm.servicosAdicionais,
           servicosOutros: pedidoForm.servicosOutros,
+          servicosValores: serviceValueInputsToCents(effectiveServiceValues),
           dataPedido: pedidoForm.dataPedido,
           dataEntrega: pedidoForm.dataEntrega || null,
           observacoes: pedidoForm.observacoes
@@ -507,7 +549,8 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
                   {pedidosFiltrados.map((pedido) => {
                     const serviceLabels = formatOrderServices(
                       pedido.servicosAdicionais,
-                      pedido.servicosOutros
+                      pedido.servicosOutros,
+                      pedido.servicosValores
                     );
 
                     return (
@@ -806,7 +849,7 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
               }}
             >
               <label className="field">
-                <span className="form-label">Valor total</span>
+                <span className="form-label">Valor do convite / arte</span>
                 <input
                   className="input"
                   inputMode="decimal"
@@ -901,23 +944,61 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
                       type="checkbox"
                     />
                     <span>{service.label}</span>
+                    {pedidoForm.servicosAdicionais.includes(service.id) ? (
+                      <input
+                        className="input order-service-value"
+                        inputMode="decimal"
+                        onChange={(event) =>
+                          updatePedidoServicoValor(service.id, event.target.value)
+                        }
+                        placeholder="Valor"
+                        value={pedidoForm.servicosValores[service.id] ?? ""}
+                      />
+                    ) : null}
                   </label>
                 ))}
               </div>
-              <label className="field">
-                <span className="form-label">Outros serviços</span>
-                <textarea
-                  className="textarea"
-                  onChange={(event) =>
-                    setPedidoForm({
-                      ...pedidoForm,
-                      servicosOutros: event.target.value
-                    })
-                  }
-                  placeholder="Ex.: arte extra, papelaria, alteração personalizada..."
-                  value={pedidoForm.servicosOutros}
-                />
-              </label>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 12,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))"
+                }}
+              >
+                <label className="field">
+                  <span className="form-label">Outros serviços</span>
+                  <textarea
+                    className="textarea"
+                    onChange={(event) =>
+                      setPedidoForm({
+                        ...pedidoForm,
+                        servicosOutros: event.target.value
+                      })
+                    }
+                    placeholder="Ex.: arte extra, papelaria, alteração personalizada..."
+                    value={pedidoForm.servicosOutros}
+                  />
+                </label>
+                <label className="field">
+                  <span className="form-label">Valor</span>
+                  <input
+                    className="input"
+                    inputMode="decimal"
+                    onChange={(event) =>
+                      updatePedidoServicoValor(
+                        OTHER_ORDER_SERVICE_ID,
+                        event.target.value
+                      )
+                    }
+                    placeholder="0,00"
+                    value={pedidoForm.servicosValores[OTHER_ORDER_SERVICE_ID] ?? ""}
+                  />
+                </label>
+              </div>
+              <div className="order-service-total">
+                <span>Serviços: {formatMoney(servicosValorTotal)}</span>
+                <strong>Total do pedido: {formatMoney(pedidoTotalPreview)}</strong>
+              </div>
             </section>
 
             <label className="field">
@@ -1141,6 +1222,61 @@ function centsToInput(value: number | null | undefined) {
   return (value / 100).toFixed(2).replace(".", ",");
 }
 
+function serviceValueInputsToCents(values: Record<string, string>) {
+  return Object.entries(values).reduce<OrderServiceValueMap>((result, [key, value]) => {
+    const cents = moneyToCents(value);
+
+    if (cents > 0) {
+      result[key] = cents;
+    }
+
+    return result;
+  }, {});
+}
+
+function sumServiceValueInputs(values: Record<string, string>) {
+  return sumOrderServiceValues(serviceValueInputsToCents(values));
+}
+
+function serviceValuesToInput(values: OrderServiceValueMap | null | undefined) {
+  return Object.entries(values ?? {}).reduce<Record<string, string>>(
+    (result, [key, value]) => {
+      result[key] = centsToInput(value);
+      return result;
+    },
+    {}
+  );
+}
+
+function filterServiceValueInputs(
+  values: Record<string, string>,
+  services: OrderServiceId[],
+  otherServices: string
+) {
+  const allowed = new Set<string>(services);
+
+  if (otherServices.trim()) {
+    allowed.add(OTHER_ORDER_SERVICE_ID);
+  }
+
+  return Object.entries(values).reduce<Record<string, string>>(
+    (result, [key, value]) => {
+      if (allowed.has(key)) {
+        result[key] = value;
+      }
+
+      return result;
+    },
+    {}
+  );
+}
+
+function removeServiceValue(values: Record<string, string>, serviceId: string) {
+  const nextValues = { ...values };
+  delete nextValues[serviceId];
+  return nextValues;
+}
+
 function normalizeStatus(status: CaixaPedido["status"]): StatusPedido {
   if (status && status in statusLabels) {
     return status as StatusPedido;
@@ -1156,7 +1292,8 @@ function buildPedidoConfirmationText(pedido: CaixaPedido) {
   const observacoes = pedido.observacoes?.trim();
   const serviceLabels = formatOrderServices(
     pedido.servicosAdicionais,
-    pedido.servicosOutros
+    pedido.servicosOutros,
+    pedido.servicosValores
   );
   const lines = [
     `Olá, ${pedido.clienteNome}! Tudo bem?`,

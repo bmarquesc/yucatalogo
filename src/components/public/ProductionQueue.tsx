@@ -261,7 +261,8 @@ function ProductionCard({
   const status = normalizeStatusProducao(pedido.statusProducao);
   const serviceLabels = formatOrderServices(
     pedido.servicosAdicionais,
-    pedido.servicosOutros
+    pedido.servicosOutros,
+    pedido.servicosValores
   );
 
   return (
@@ -350,7 +351,8 @@ function ProductionDetailsModal({
   const titleId = `production-details-${pedido.id}`;
   const serviceLabels = formatOrderServices(
     pedido.servicosAdicionais,
-    pedido.servicosOutros
+    pedido.servicosOutros,
+    pedido.servicosValores
   );
 
   return (

@@ -4,7 +4,10 @@ import { getDb } from "@/db";
 import { pedidos } from "@/db/schema";
 import { handleRouteError, jsonError, readJson } from "@/lib/api";
 import { requireConviteira } from "@/lib/auth";
-import { sanitizeOrderServices } from "@/lib/orderServices";
+import {
+  sanitizeOrderServices,
+  sanitizeOrderServiceValues
+} from "@/lib/orderServices";
 import type { OrigemPedido, StatusPedido } from "@/types/caixa";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +31,7 @@ type PedidoPayload = {
   status?: StatusPedido;
   servicosAdicionais?: string[] | null;
   servicosOutros?: string | null;
+  servicosValores?: Record<string, number> | null;
   dataPedido?: string | null;
   dataEntrega?: string | null;
   observacoes?: string | null;
@@ -46,6 +50,7 @@ export async function POST(request: Request) {
     const valorPago = sanitizeMoney(body.valorPago);
     const status = resolveStatus(body.status, valorTotal, valorPago);
     const servicosAdicionais = sanitizeOrderServices(body.servicosAdicionais);
+    const servicosOutros = body.servicosOutros?.trim() || null;
 
     const [pedido] = await getDb()
       .insert(pedidos)
@@ -61,7 +66,12 @@ export async function POST(request: Request) {
         valorPago,
         status,
         servicosAdicionais: servicosAdicionais.length ? servicosAdicionais : null,
-        servicosOutros: body.servicosOutros?.trim() || null,
+        servicosOutros,
+        servicosValores: sanitizeOrderServiceValues(
+          body.servicosValores,
+          servicosAdicionais,
+          servicosOutros
+        ),
         dataPedido: normalizeDate(body.dataPedido) || today(),
         dataEntrega: normalizeDate(body.dataEntrega),
         observacoes: body.observacoes?.trim() || null
