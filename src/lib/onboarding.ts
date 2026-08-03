@@ -2,12 +2,24 @@ import { currentUser } from "@clerk/nextjs/server";
 
 import {
   createConviteiraWithDefaults,
+  getConviteiraByIdForUser,
   getConviteiraByUserId
 } from "@/db/queries";
 
 type ClerkUser = NonNullable<Awaited<ReturnType<typeof currentUser>>>;
 
-export async function ensureConviteiraForUser(user: ClerkUser) {
+export async function ensureConviteiraForUser(
+  user: ClerkUser,
+  selectedConviteiraId?: string
+) {
+  if (selectedConviteiraId) {
+    const selected = await getConviteiraByIdForUser(selectedConviteiraId, user.id);
+
+    if (selected) {
+      return { conviteira: selected, created: false };
+    }
+  }
+
   const existing = await getConviteiraByUserId(user.id);
 
   if (existing) {

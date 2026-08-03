@@ -36,12 +36,20 @@ export async function DELETE(
       return jsonError("Mídia não encontrada.", 404);
     }
 
-    await getR2Client().send(
-      new DeleteObjectCommand({
-        Bucket: getR2BucketName(),
-        Key: media.r2Key
-      })
-    );
+    const sharedMediaRows = await getDb()
+      .select({ id: arteMidias.id })
+      .from(arteMidias)
+      .where(eq(arteMidias.r2Key, media.r2Key))
+      .limit(2);
+
+    if (sharedMediaRows.length <= 1) {
+      await getR2Client().send(
+        new DeleteObjectCommand({
+          Bucket: getR2BucketName(),
+          Key: media.r2Key
+        })
+      );
+    }
 
     await getDb().delete(arteMidias).where(eq(arteMidias.id, params.id));
     return NextResponse.json({ ok: true });

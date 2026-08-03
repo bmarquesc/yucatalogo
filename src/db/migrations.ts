@@ -10,7 +10,7 @@ export async function migrateDatabase() {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS conviteiras (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      clerk_user_id TEXT NOT NULL UNIQUE,
+      clerk_user_id TEXT NOT NULL,
       slug TEXT NOT NULL UNIQUE,
       nome_marca TEXT NOT NULL,
       bio TEXT,
@@ -23,6 +23,16 @@ export async function migrateDatabase() {
       plano_ativo BOOLEAN DEFAULT false,
       criado_em TIMESTAMPTZ DEFAULT NOW()
     )
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE conviteiras
+    DROP CONSTRAINT IF EXISTS conviteiras_clerk_user_id_key
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE conviteiras
+    DROP CONSTRAINT IF EXISTS conviteiras_clerk_user_id_unique
   `);
 
   await db.execute(sql`

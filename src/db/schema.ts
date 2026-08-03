@@ -12,7 +12,7 @@ import {
 
 export const conviteiras = pgTable("conviteiras", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  clerkUserId: text("clerk_user_id").notNull().unique(),
+  clerkUserId: text("clerk_user_id").notNull(),
   slug: text("slug").notNull().unique(),
   nomeMarca: text("nome_marca").notNull(),
   bio: text("bio"),

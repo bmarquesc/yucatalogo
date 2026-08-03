@@ -27,6 +27,35 @@ export async function getConviteiraByUserId(userId: string) {
     .select()
     .from(conviteiras)
     .where(eq(conviteiras.clerkUserId, userId))
+    .orderBy(asc(conviteiras.criadoEm))
+    .limit(1);
+
+  return conviteira ?? null;
+}
+
+export async function getConviteirasByUserId(userId: string) {
+  return getDb()
+    .select()
+    .from(conviteiras)
+    .where(eq(conviteiras.clerkUserId, userId))
+    .orderBy(asc(conviteiras.criadoEm), asc(conviteiras.nomeMarca));
+}
+
+export async function getConviteiraById(id: string) {
+  const [conviteira] = await getDb()
+    .select()
+    .from(conviteiras)
+    .where(eq(conviteiras.id, id))
+    .limit(1);
+
+  return conviteira ?? null;
+}
+
+export async function getConviteiraByIdForUser(id: string, userId: string) {
+  const [conviteira] = await getDb()
+    .select()
+    .from(conviteiras)
+    .where(and(eq(conviteiras.id, id), eq(conviteiras.clerkUserId, userId)))
     .limit(1);
 
   return conviteira ?? null;
@@ -120,6 +149,132 @@ export async function createConviteiraWithDefaults(input: {
   );
 
   return conviteira;
+}
+
+export async function duplicateConviteiraForUser(input: {
+  conviteiraId: string;
+  clerkUserId: string;
+  nomeMarca?: string;
+}) {
+  const source = await getConviteiraByIdForUser(input.conviteiraId, input.clerkUserId);
+
+  if (!source) {
+    throw new Error("CATALOG_NOT_FOUND");
+  }
+
+  const db = getDb();
+  const [tipoRows, campoRows, arteRows] = await Promise.all([
+    getTiposForConviteira(source.id),
+    getCamposForConviteira(source.id),
+    db
+      .select()
+      .from(artes)
+      .where(eq(artes.conviteiraId, source.id))
+      .orderBy(asc(artes.ordem), asc(artes.nome))
+  ]);
+  const mediaRows = arteRows.length
+    ? await db
+        .select()
+        .from(arteMidias)
+        .where(
+          inArray(
+            arteMidias.arteId,
+            arteRows.map((arte) => arte.id)
+          )
+        )
+        .orderBy(asc(arteMidias.ordem))
+    : [];
+  const mediaByArte = mediaRows.reduce((map, media) => {
+    const list = map.get(media.arteId) ?? [];
+    list.push(media);
+    map.set(media.arteId, list);
+    return map;
+  }, new Map<string, typeof mediaRows>());
+  const nomeMarca = input.nomeMarca?.trim() || `${source.nomeMarca} cópia`;
+  const slug = await createUniqueSlug(nomeMarca);
+
+  return db.transaction(async (tx) => {
+    const [copy] = await tx
+      .insert(conviteiras)
+      .values({
+        clerkUserId: input.clerkUserId,
+        slug,
+        nomeMarca,
+        bio: source.bio,
+        whatsapp: source.whatsapp,
+        logoUrl: source.logoUrl,
+        bannerUrl: source.bannerUrl,
+        corPrincipal: source.corPrincipal,
+        corDestaque: source.corDestaque,
+        fonteCatalogo: source.fonteCatalogo,
+        planoAtivo: source.planoAtivo
+      })
+      .returning();
+
+    const tipoIdMap = new Map<string, string>();
+    for (const tipo of tipoRows) {
+      const [createdTipo] = await tx
+        .insert(tiposConvite)
+        .values({
+          conviteiraId: copy.id,
+          nome: tipo.nome,
+          nomePublico: tipo.nomePublico,
+          descricaoPublica: tipo.descricaoPublica,
+          emoji: tipo.emoji,
+          modoDisplay: tipo.modoDisplay,
+          ordem: tipo.ordem
+        })
+        .returning();
+      tipoIdMap.set(tipo.id, createdTipo.id);
+    }
+
+    if (campoRows.length) {
+      await tx.insert(camposPedido).values(
+        campoRows.map((campo) => ({
+          conviteiraId: copy.id,
+          label: campo.label,
+          tipo: campo.tipo,
+          opcoes: campo.opcoes,
+          obrigatorio: campo.obrigatorio,
+          ordem: campo.ordem
+        }))
+      );
+    }
+
+    for (const arte of arteRows) {
+      const [createdArte] = await tx
+        .insert(artes)
+        .values({
+          conviteiraId: copy.id,
+          tipoId: arte.tipoId ? tipoIdMap.get(arte.tipoId) ?? null : null,
+          nome: arte.nome,
+          tema: arte.tema,
+          emoji: arte.emoji,
+          canvaUrl: arte.canvaUrl,
+          linkPublicado: arte.linkPublicado,
+          valor: arte.valor,
+          valorAPartir: arte.valorAPartir,
+          ordem: arte.ordem,
+          ativo: arte.ativo
+        })
+        .returning();
+      const medias = mediaByArte.get(arte.id) ?? [];
+
+      if (medias.length) {
+        await tx.insert(arteMidias).values(
+          medias.map((media) => ({
+            arteId: createdArte.id,
+            tipo: media.tipo,
+            url: media.url,
+            r2Key: media.r2Key,
+            ordem: media.ordem
+          }))
+        );
+      }
+    }
+
+    return copy;
+  });
 }
 
 export async function updateConviteira(

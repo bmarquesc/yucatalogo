@@ -1,16 +1,28 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 
 import {
   createConviteiraWithDefaults,
+  getConviteiraById,
   getConviteiraBySlug,
   getFirstConviteira
 } from "@/db/queries";
 import { isLocalDevAuthEnabled } from "@/lib/devMode";
 import { ensureConviteiraForUser } from "@/lib/onboarding";
 
+export const ACTIVE_CATALOGO_COOKIE = "yc_catalogo_id";
+
 export async function getLocalDevConviteira() {
   if (!isLocalDevAuthEnabled()) {
     return null;
+  }
+
+  const selectedId = cookies().get(ACTIVE_CATALOGO_COOKIE)?.value;
+  if (selectedId) {
+    const selected = await getConviteiraById(selectedId);
+    if (selected) {
+      return { conviteira: selected, created: false };
+    }
   }
 
   const slug = process.env.DEV_AUTH_SLUG?.trim();
@@ -65,5 +77,6 @@ export async function requireConviteira() {
   }
 
   const user = await requireUser();
-  return ensureConviteiraForUser(user);
+  const selectedId = cookies().get(ACTIVE_CATALOGO_COOKIE)?.value;
+  return ensureConviteiraForUser(user, selectedId);
 }
