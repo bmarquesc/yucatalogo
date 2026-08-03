@@ -630,22 +630,64 @@ button {
 }
 
 .public-art-card {
-  aspect-ratio: 9 / 16;
-  background: var(--brand-accent);
-  border: 0;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 6px;
-  color: #fff;
+  color: var(--brand-primary);
   display: grid;
-  font-size: 42px;
   min-width: 0;
   overflow: hidden;
   padding: 0;
-  place-items: center;
+  text-align: left;
   touch-action: manipulation;
 }
 
 .public-art-card:active {
   transform: scale(0.99);
+}
+
+.public-art-media {
+  aspect-ratio: 9 / 16;
+  background: var(--brand-accent);
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.public-art-caption {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.public-art-type,
+.public-art-theme {
+  color: color-mix(in srgb, var(--brand-primary), transparent 44%);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.public-art-type {
+  text-transform: uppercase;
+}
+
+.public-art-name {
+  color: var(--brand-primary);
+  font-family: var(--catalog-font-display);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.public-art-price {
+  color: var(--brand-primary);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-top: 2px;
 }
 
 .public-empty {

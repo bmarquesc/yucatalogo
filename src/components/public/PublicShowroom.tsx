@@ -156,6 +156,8 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
               const cover =
                 arte.midias.find((media) => media.tipo === "imagem") ??
                 arte.midias[0];
+              const priceLabel = formatCatalogPrice(arte.valor, arte.valorAPartir);
+
               return (
                 <button
                   aria-label={arte.nome}
@@ -164,11 +166,25 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
                   onClick={() => setSelectedArte(arte)}
                   type="button"
                 >
-                  {cover ? (
-                    <ShowroomMedia media={cover} label={arte.nome} />
-                  ) : (
-                    <ShowroomPlaceholder />
-                  )}
+                  <span className="public-art-media">
+                    {cover ? (
+                      <ShowroomMedia media={cover} label={arte.nome} />
+                    ) : (
+                      <ShowroomPlaceholder />
+                    )}
+                  </span>
+                  <span className="public-art-caption">
+                    <span className="public-art-type">
+                      {arte.tipo?.nomePublico || "Convite"}
+                    </span>
+                    <strong className="public-art-name">{arte.nome}</strong>
+                    {arte.tema ? (
+                      <span className="public-art-theme">{arte.tema}</span>
+                    ) : null}
+                    {priceLabel ? (
+                      <span className="public-art-price">{priceLabel}</span>
+                    ) : null}
+                  </span>
                 </button>
               );
             })}
