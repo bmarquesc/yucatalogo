@@ -54,10 +54,22 @@ export async function migrateDatabase() {
       emoji TEXT DEFAULT '🎉',
       canva_url TEXT,
       link_publicado TEXT,
+      valor INT,
+      valor_a_partir BOOLEAN DEFAULT false,
       ordem INT DEFAULT 0,
       ativo BOOLEAN DEFAULT true,
       criado_em TIMESTAMPTZ DEFAULT NOW()
     )
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE artes
+    ADD COLUMN IF NOT EXISTS valor INT
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE artes
+    ADD COLUMN IF NOT EXISTS valor_a_partir BOOLEAN DEFAULT false
   `);
 
   await db.execute(sql`

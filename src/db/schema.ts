@@ -62,6 +62,8 @@ export const artes = pgTable("artes", {
   emoji: text("emoji").default("🎉"),
   canvaUrl: text("canva_url"),
   linkPublicado: text("link_publicado"),
+  valor: integer("valor"),
+  valorAPartir: boolean("valor_a_partir").default(false),
   ordem: integer("ordem").default(0),
   ativo: boolean("ativo").default(true),
   criadoEm: timestamp("criado_em", { withTimezone: true }).defaultNow()

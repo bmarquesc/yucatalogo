@@ -219,6 +219,7 @@ function ShowroomModal({
   const slides = arte.midias;
   const currentSlide = slides[slide];
   const orderFields = useMemo(() => buildPublicOrderFields(campos), [campos]);
+  const priceLabel = formatCatalogPrice(arte.valor, arte.valorAPartir);
 
   useEffect(() => {
     setSlide(0);
@@ -396,6 +397,7 @@ function ShowroomModal({
               {arte.nome}
             </h2>
             {arte.tema ? <p className="showroom-theme">{arte.tema}</p> : null}
+            {priceLabel ? <p className="showroom-price">{priceLabel}</p> : null}
           </div>
 
           <div className="showroom-actions">
@@ -749,4 +751,20 @@ function inputType(tipo: CatalogCampo["tipo"]) {
   }
 
   return "text";
+}
+
+function formatCatalogPrice(
+  value: number | null | undefined,
+  startsAt: boolean | null | undefined
+) {
+  if (!value || value <= 0) {
+    return "";
+  }
+
+  const formatted = new Intl.NumberFormat("pt-BR", {
+    currency: "BRL",
+    style: "currency"
+  }).format(value / 100);
+
+  return startsAt ? `A partir de ${formatted}` : formatted;
 }

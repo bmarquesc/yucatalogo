@@ -45,6 +45,8 @@ export type CatalogArte = {
   emoji: string | null;
   canvaUrl?: string | null;
   linkPublicado: string | null;
+  valor: number | null;
+  valorAPartir: boolean | null;
   ordem: number | null;
   ativo: boolean | null;
   tipo?: CatalogTipo | null;

@@ -15,6 +15,8 @@ type ArteUpdatePayload = {
   emoji?: string | null;
   canvaUrl?: string | null;
   linkPublicado?: string | null;
+  valor?: number | null;
+  valorAPartir?: boolean | null;
   ordem?: number;
   ativo?: boolean;
 };
@@ -44,6 +46,10 @@ export async function PUT(
           body.linkPublicado === undefined
             ? undefined
             : body.linkPublicado?.trim() || null,
+        valor:
+          body.valor === undefined ? undefined : sanitizeOptionalMoney(body.valor),
+        valorAPartir:
+          body.valorAPartir === undefined ? undefined : Boolean(body.valorAPartir),
         ordem: body.ordem,
         ativo: body.ativo
       })
@@ -58,6 +64,18 @@ export async function PUT(
   } catch (error) {
     return handleRouteError(error);
   }
+}
+
+function sanitizeOptionalMoney(value: unknown) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return null;
+  }
+
+  return Math.round(value);
 }
 
 export async function DELETE(

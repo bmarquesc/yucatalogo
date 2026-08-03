@@ -16,6 +16,8 @@ type ArtePayload = {
   emoji?: string | null;
   canvaUrl?: string | null;
   linkPublicado?: string | null;
+  valor?: number | null;
+  valorAPartir?: boolean | null;
   ordem?: number;
   midias?: Array<{
     tipo: TipoMidia;
@@ -68,6 +70,8 @@ export async function POST(request: Request) {
         emoji: body.emoji?.trim() || "🎉",
         canvaUrl: body.canvaUrl?.trim() || null,
         linkPublicado: body.linkPublicado?.trim() || null,
+        valor: sanitizeOptionalMoney(body.valor),
+        valorAPartir: Boolean(body.valorAPartir),
         ordem: body.ordem ?? 0
       })
       .returning();
@@ -88,4 +92,16 @@ export async function POST(request: Request) {
   } catch (error) {
     return handleRouteError(error);
   }
+}
+
+function sanitizeOptionalMoney(value: unknown) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return null;
+  }
+
+  return Math.round(value);
 }

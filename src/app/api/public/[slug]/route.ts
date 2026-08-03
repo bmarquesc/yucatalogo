@@ -63,7 +63,7 @@ export async function POST(
     const clienteWhatsapp = findPublicOrderWhatsapp(fields, values);
 
     if (!clienteNome) {
-      return jsonError("Informe o nome da aniversariante.");
+      return jsonError("Informe o nome do responsável pelo convite.");
     }
 
     if (!sanitizeWhatsApp(clienteWhatsapp)) {

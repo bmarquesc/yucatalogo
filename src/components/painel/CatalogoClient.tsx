@@ -31,6 +31,8 @@ type ArteForm = {
   nome: string;
   tipoId: string;
   tema: string;
+  valor: string;
+  valorAPartir: boolean;
   canvaUrl: string;
   linkPublicado: string;
 };
@@ -41,6 +43,8 @@ const emptyForm: ArteForm = {
   nome: "",
   tipoId: "",
   tema: "",
+  valor: "",
+  valorAPartir: false,
   canvaUrl: "",
   linkPublicado: ""
 };
@@ -101,6 +105,8 @@ export function CatalogoClient() {
       nome: arte.nome,
       tipoId: arte.tipoId || "",
       tema: arte.tema || "",
+      valor: centsToOptionalInput(arte.valor),
+      valorAPartir: Boolean(arte.valorAPartir),
       canvaUrl: arte.canvaUrl || "",
       linkPublicado: arte.linkPublicado || ""
     });
@@ -269,6 +275,11 @@ export function CatalogoClient() {
       return;
     }
 
+    if (form.valor.trim() && moneyToOptionalCents(form.valor) === null) {
+      notify("Informe um valor válido para o convite.", "error");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -306,6 +317,8 @@ export function CatalogoClient() {
         nome: form.nome,
         tipoId: form.tipoId || null,
         tema: form.tema,
+        valor: moneyToOptionalCents(form.valor),
+        valorAPartir: form.valorAPartir,
         canvaUrl: form.canvaUrl,
         linkPublicado: form.linkPublicado,
         midias: [...imageUploads, ...videoUploads]
@@ -326,6 +339,8 @@ export function CatalogoClient() {
         nome: form.nome,
         tipoId: form.tipoId || null,
         tema: form.tema,
+        valor: moneyToOptionalCents(form.valor),
+        valorAPartir: form.valorAPartir,
         canvaUrl: form.canvaUrl,
         linkPublicado: form.linkPublicado
       })
@@ -449,6 +464,7 @@ export function CatalogoClient() {
               arte.midias.find((media) => media.tipo === "imagem") ?? arte.midias[0];
             const imageTotal = arte.midias.filter((media) => media.tipo === "imagem").length;
             const hasVideo = arte.midias.some((media) => media.tipo === "video");
+            const priceLabel = formatCatalogPrice(arte.valor, arte.valorAPartir);
 
             return (
               <article className="panel-card" key={arte.id}>
@@ -488,6 +504,11 @@ export function CatalogoClient() {
                   <p style={{ color: "var(--mid)", margin: 0 }}>
                     {arte.tema || "Tema não informado"}
                   </p>
+                  {priceLabel ? (
+                    <strong style={{ color: "var(--black)", fontSize: 15 }}>
+                      {priceLabel}
+                    </strong>
+                  ) : null}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     <span className="status-pill">{imageTotal}/10 fotos</span>
                     <span className="status-pill">
@@ -610,6 +631,50 @@ export function CatalogoClient() {
                 value={form.tema}
               />
             </label>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))"
+              }}
+            >
+              <label className="field">
+                <span className="form-label">Valor do convite</span>
+                <input
+                  className="input"
+                  inputMode="decimal"
+                  onChange={(event) => setForm({ ...form, valor: event.target.value })}
+                  placeholder="Opcional"
+                  value={form.valor}
+                />
+              </label>
+
+              <label className="field">
+                <span className="form-label">Exibição do valor</span>
+                <span
+                  style={{
+                    alignItems: "center",
+                    background: "var(--paper)",
+                    border: "1px solid var(--rule)",
+                    borderRadius: 4,
+                    display: "flex",
+                    gap: 10,
+                    minHeight: 42,
+                    padding: "10px 11px"
+                  }}
+                >
+                  <input
+                    checked={form.valorAPartir}
+                    onChange={(event) =>
+                      setForm({ ...form, valorAPartir: event.target.checked })
+                    }
+                    type="checkbox"
+                  />
+                  Mostrar como "A partir de"
+                </span>
+              </label>
+            </div>
 
             <section className="grid-panel">
               <div>
@@ -830,6 +895,50 @@ function formatFileSize(size: number) {
   }
 
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function formatCatalogPrice(
+  value: number | null | undefined,
+  startsAt: boolean | null | undefined
+) {
+  if (!value || value <= 0) {
+    return "";
+  }
+
+  const formatted = new Intl.NumberFormat("pt-BR", {
+    currency: "BRL",
+    style: "currency"
+  }).format(value / 100);
+
+  return startsAt ? `A partir de ${formatted}` : formatted;
+}
+
+function moneyToOptionalCents(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const onlyNumber = trimmed.replace(/[^\d,.-]/g, "");
+  const normalized = onlyNumber.includes(",")
+    ? onlyNumber.replace(/\./g, "").replace(",", ".")
+    : onlyNumber;
+  const parsed = Number.parseFloat(normalized);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return Math.round(parsed * 100);
+}
+
+function centsToOptionalInput(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return (value / 100).toFixed(2).replace(".", ",");
 }
 
 async function readResponseError(response: Response, fallback: string) {

@@ -10,7 +10,7 @@ export type PublicOrderValues = Record<string, string>;
 export const defaultPublicOrderFields: PublicOrderField[] = [
   {
     id: "nome-aniversariante",
-    label: "Nome da aniversariante",
+    label: "Nome do responsável pelo convite",
     tipo: "texto",
     opcoes: null,
     obrigatorio: true
@@ -38,7 +38,7 @@ export const defaultPublicOrderFields: PublicOrderField[] = [
   },
   {
     id: "whatsapp-mae",
-    label: "WhatsApp da mãe da aniversariante",
+    label: "WhatsApp do responsável pelo convite",
     tipo: "telefone",
     opcoes: null,
     obrigatorio: true
@@ -124,6 +124,9 @@ export function findPublicOrderClienteNome(
 ) {
   const preferred = findValueByLabel(fields, values, (label) =>
     label.includes("aniversariante") ||
+    (label.includes("responsavel") &&
+      !label.includes("whatsapp") &&
+      !label.includes("telefone")) ||
     label.includes("cliente") ||
     (label.includes("nome") && !label.includes("mae"))
   );
@@ -232,8 +235,16 @@ export function normalizeCatalogSearch(value: string) {
 function publicOrderLabel(label: string) {
   const normalized = normalizeCatalogSearch(label);
 
+  if (normalized.includes("whatsapp") || normalized.includes("telefone")) {
+    return "WhatsApp do responsável pelo convite";
+  }
+
   if (normalized.includes("aniversariante")) {
-    return "Nome da aniversariante";
+    return "Nome do responsável pelo convite";
+  }
+
+  if (normalized.includes("responsavel")) {
+    return "Nome do responsável pelo convite";
   }
 
   if (normalized.includes("data") && normalized.includes("evento")) {
@@ -246,10 +257,6 @@ function publicOrderLabel(label: string) {
 
   if (normalized.includes("local")) {
     return "Local do evento";
-  }
-
-  if (normalized.includes("whatsapp") || normalized.includes("telefone")) {
-    return "WhatsApp da mãe da aniversariante";
   }
 
   if (normalized.includes("observ")) {
