@@ -8,6 +8,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid
 } from "drizzle-orm/pg-core";
 
@@ -26,6 +27,30 @@ export const conviteiras = pgTable("conviteiras", {
   planoAtivo: boolean("plano_ativo").default(false),
   criadoEm: timestamp("criado_em", { withTimezone: true }).defaultNow()
 });
+
+export const acessosKiwify = pgTable(
+  "acessos_kiwify",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    email: text("email").notNull(),
+    nome: text("nome"),
+    telefone: text("telefone"),
+    produtoId: text("produto_id"),
+    produtoNome: text("produto_nome"),
+    pedidoId: text("pedido_id"),
+    assinaturaId: text("assinatura_id"),
+    status: text("status").default("pendente"),
+    acessoAtivo: boolean("acesso_ativo").default(false),
+    validoAte: timestamp("valido_ate", { withTimezone: true }),
+    ultimoEvento: text("ultimo_evento"),
+    payload: jsonb("payload").$type<Record<string, unknown>>(),
+    criadoEm: timestamp("criado_em", { withTimezone: true }).defaultNow(),
+    atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    emailUnique: uniqueIndex("acessos_kiwify_email_unique").on(table.email)
+  })
+);
 
 export const tiposConvite = pgTable(
   "tipos_convite",
@@ -163,6 +188,7 @@ export const gastosCaixa = pgTable("gastos_caixa", {
 });
 
 export type Conviteira = typeof conviteiras.$inferSelect;
+export type AcessoKiwify = typeof acessosKiwify.$inferSelect;
 export type TipoConvite = typeof tiposConvite.$inferSelect;
 export type Arte = typeof artes.$inferSelect;
 export type ArteMidia = typeof arteMidias.$inferSelect;

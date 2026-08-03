@@ -5,6 +5,7 @@ import { OnboardingRedirect } from "@/components/painel/OnboardingRedirect";
 import { Sidebar } from "@/components/painel/Sidebar";
 import { ToastProvider } from "@/components/painel/ToastProvider";
 import { getConviteirasByUserId } from "@/db/queries";
+import { userHasPanelAccess } from "@/lib/accessControl";
 import { getLocalDevConviteira } from "@/lib/auth";
 import { ensureConviteiraForUser } from "@/lib/onboarding";
 
@@ -48,6 +49,12 @@ export default async function PainelLayout({
 
   if (!user) {
     redirect("/entrar");
+  }
+
+  const hasAccess = await userHasPanelAccess(user);
+
+  if (!hasAccess) {
+    redirect("/sem-acesso");
   }
 
   const { conviteira, created } = await ensureConviteiraForUser(user);

@@ -203,6 +203,17 @@ button {
   opacity: 0.78;
 }
 
+.auth-message-card {
+  padding-bottom: 32px;
+}
+
+.auth-message-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+  width: 100%;
+}
+
 @media (max-width: 520px) {
   .auth-page {
     padding: 22px 14px;

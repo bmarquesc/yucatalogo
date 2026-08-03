@@ -7,6 +7,7 @@ import {
   getConviteiraBySlug,
   getFirstConviteira
 } from "@/db/queries";
+import { requirePanelAccess } from "@/lib/accessControl";
 import { isLocalDevAuthEnabled } from "@/lib/devMode";
 import { ensureConviteiraForUser } from "@/lib/onboarding";
 
@@ -77,6 +78,8 @@ export async function requireConviteira() {
   }
 
   const user = await requireUser();
+  await requirePanelAccess(user);
+
   const selectedId = cookies().get(ACTIVE_CATALOGO_COOKIE)?.value;
   return ensureConviteiraForUser(user, selectedId);
 }

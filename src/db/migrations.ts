@@ -41,6 +41,31 @@ export async function migrateDatabase() {
   `);
 
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS acessos_kiwify (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      email TEXT NOT NULL,
+      nome TEXT,
+      telefone TEXT,
+      produto_id TEXT,
+      produto_nome TEXT,
+      pedido_id TEXT,
+      assinatura_id TEXT,
+      status TEXT DEFAULT 'pendente',
+      acesso_ativo BOOLEAN DEFAULT false,
+      valido_ate TIMESTAMPTZ,
+      ultimo_evento TEXT,
+      payload JSONB,
+      criado_em TIMESTAMPTZ DEFAULT NOW(),
+      atualizado_em TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await db.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS acessos_kiwify_email_unique
+    ON acessos_kiwify(email)
+  `);
+
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS tipos_convite (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       conviteira_id UUID NOT NULL REFERENCES conviteiras(id) ON DELETE CASCADE,

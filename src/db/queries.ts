@@ -1,7 +1,8 @@
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import {
+  acessosKiwify,
   arteMidias,
   artes,
   camposPedido,
@@ -21,6 +22,85 @@ import type {
 } from "@/types/catalog";
 import type { CaixaData, CaixaGasto, CaixaPedido } from "@/types/caixa";
 import type { ProducaoData, ProducaoPedido } from "@/types/producao";
+
+export async function getKiwifyAccessByEmail(email: string) {
+  const [access] = await getDb()
+    .select()
+    .from(acessosKiwify)
+    .where(eq(acessosKiwify.email, normalizeEmail(email)))
+    .limit(1);
+
+  return access ?? null;
+}
+
+export async function getActiveKiwifyAccessByEmail(email: string) {
+  const access = await getKiwifyAccessByEmail(email);
+
+  if (!access?.acessoAtivo) {
+    return null;
+  }
+
+  if (access.validoAte && access.validoAte.getTime() < Date.now()) {
+    return null;
+  }
+
+  return access;
+}
+
+export async function upsertKiwifyAccess(input: {
+  email: string;
+  nome?: string | null;
+  telefone?: string | null;
+  produtoId?: string | null;
+  produtoNome?: string | null;
+  pedidoId?: string | null;
+  assinaturaId?: string | null;
+  status: string;
+  acessoAtivo: boolean;
+  validoAte?: Date | null;
+  ultimoEvento?: string | null;
+  payload: Record<string, unknown>;
+}) {
+  const normalizedEmail = normalizeEmail(input.email);
+  const data = {
+    email: normalizedEmail,
+    nome: input.nome ?? null,
+    telefone: input.telefone ?? null,
+    produtoId: input.produtoId ?? null,
+    produtoNome: input.produtoNome ?? null,
+    pedidoId: input.pedidoId ?? null,
+    assinaturaId: input.assinaturaId ?? null,
+    status: input.status,
+    acessoAtivo: input.acessoAtivo,
+    validoAte: input.validoAte ?? null,
+    ultimoEvento: input.ultimoEvento ?? null,
+    payload: input.payload
+  };
+
+  const [access] = await getDb()
+    .insert(acessosKiwify)
+    .values(data)
+    .onConflictDoUpdate({
+      target: acessosKiwify.email,
+      set: {
+        nome: data.nome,
+        telefone: data.telefone,
+        produtoId: data.produtoId,
+        produtoNome: data.produtoNome,
+        pedidoId: data.pedidoId,
+        assinaturaId: data.assinaturaId,
+        status: data.status,
+        acessoAtivo: data.acessoAtivo,
+        validoAte: data.validoAte,
+        ultimoEvento: data.ultimoEvento,
+        payload: data.payload,
+        atualizadoEm: sql`NOW()`
+      }
+    })
+    .returning();
+
+  return access;
+}
 
 export async function getConviteiraByUserId(userId: string) {
   const [conviteira] = await getDb()
@@ -680,6 +760,10 @@ function normalizeText(value: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
 }
 
 function sumCurrency(values: Array<number | null | undefined>) {
