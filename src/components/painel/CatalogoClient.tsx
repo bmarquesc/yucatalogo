@@ -23,6 +23,10 @@ type UploadResult = {
   key: string;
 };
 
+type PresignedUpload = UploadResult & {
+  uploadUrl: string;
+};
+
 type ArteForm = {
   nome: string;
   tipoId: string;
@@ -133,7 +137,7 @@ export function CatalogoClient() {
     setImageFiles((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
 
-  async function uploadFile(file: File, tipo: TipoMidia, ordem: number) {
+  async function uploadViaServer(file: File) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("pasta", "artes");
@@ -144,16 +148,87 @@ export function CatalogoClient() {
     });
 
     if (!response.ok) {
-      throw new Error("UPLOAD_FAILED");
+      if (response.status === 413) {
+        throw new Error(
+          `O arquivo "${file.name}" é grande demais para este envio. Tente compactar ou escolher outro arquivo.`
+        );
+      }
+
+      throw new Error(
+        await readResponseError(response, "Nao foi possivel enviar a midia.")
+      );
     }
 
-    const data = (await response.json()) as UploadResult;
+    return (await response.json()) as UploadResult;
+  }
+
+  async function uploadDirectToR2(file: File) {
+    const contentType = file.type || "application/octet-stream";
+    const presignResponse = await fetch("/api/upload/presign", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        contentType,
+        fileName: file.name,
+        pasta: "artes"
+      })
+    });
+
+    if (!presignResponse.ok) {
+      throw new Error(
+        await readResponseError(
+          presignResponse,
+          "Nao foi possivel preparar o envio da midia."
+        )
+      );
+    }
+
+    const data = (await presignResponse.json()) as PresignedUpload;
+    const uploadResponse = await fetch(data.uploadUrl, {
+      method: "PUT",
+      headers: { "content-type": contentType },
+      body: file
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("Nao foi possivel enviar a midia para o armazenamento.");
+    }
+
+    return {
+      key: data.key,
+      url: data.url
+    };
+  }
+
+  async function uploadFile(file: File, tipo: TipoMidia, ordem: number) {
+    let data: UploadResult;
+
+    try {
+      data = await uploadDirectToR2(file);
+    } catch {
+      try {
+        data = await uploadViaServer(file);
+      } catch (fallbackError) {
+        throw new Error(getUploadErrorMessage(file, fallbackError));
+      }
+    }
+
     return {
       tipo,
       url: data.url,
       r2Key: data.key,
       ordem
     };
+  }
+
+  async function uploadFiles(files: File[], tipo: TipoMidia, startOrder = 0) {
+    const uploads: Awaited<ReturnType<typeof uploadFile>>[] = [];
+
+    for (const [index, file] of files.entries()) {
+      uploads.push(await uploadFile(file, tipo, startOrder + index));
+    }
+
+    return uploads;
   }
 
   async function createMedia(arteId: string, media: Awaited<ReturnType<typeof uploadFile>>) {
@@ -219,9 +294,7 @@ export function CatalogoClient() {
   }
 
   async function createArte() {
-    const imageUploads = await Promise.all(
-      imageFiles.map((file, index) => uploadFile(file, "imagem", index))
-    );
+    const imageUploads = await uploadFiles(imageFiles, "imagem");
     const videoUploads = videoFile
       ? [await uploadFile(videoFile, "video", imageUploads.length)]
       : [];
@@ -263,10 +336,10 @@ export function CatalogoClient() {
       throw new Error(data.error || "Não foi possível atualizar o convite.");
     }
 
-    const imageUploads = await Promise.all(
-      imageFiles.map((file, index) =>
-        uploadFile(file, "imagem", existingImages.length + index)
-      )
+    const imageUploads = await uploadFiles(
+      imageFiles,
+      "imagem",
+      existingImages.length
     );
 
     for (const media of imageUploads) {
@@ -757,4 +830,23 @@ function formatFileSize(size: number) {
   }
 
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
+}
+
+async function readResponseError(response: Response, fallback: string) {
+  try {
+    const data = (await response.json()) as { error?: string };
+    return data.error || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function getUploadErrorMessage(file: File, error: unknown) {
+  const detail = error instanceof Error ? error.message : "";
+
+  if (detail && detail !== "Failed to fetch") {
+    return `${detail} Arquivo: ${file.name}.`;
+  }
+
+  return `Não foi possível enviar "${file.name}". Tente novamente ou use um arquivo menor.`;
 }

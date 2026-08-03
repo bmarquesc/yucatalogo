@@ -10,7 +10,8 @@
     "db:migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/client-s3": "^3.1101.0",
+    "@aws-sdk/s3-request-presigner": "^3.1101.0",
     "@clerk/nextjs": "^5.7.5",
     "@neondatabase/serverless": "^0.10.4",
     "drizzle-orm": "^0.36.4",
@@ -20,10 +21,10 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@next/swc-wasm-nodejs": "14.2.33",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@next/swc-wasm-nodejs": "14.2.33",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.35",
