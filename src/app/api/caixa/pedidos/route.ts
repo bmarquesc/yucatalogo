@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { pedidos } from "@/db/schema";
 import { handleRouteError, jsonError, readJson } from "@/lib/api";
 import { requireConviteira } from "@/lib/auth";
+import { sanitizeOrderServices } from "@/lib/orderServices";
 import type { OrigemPedido, StatusPedido } from "@/types/caixa";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,8 @@ type PedidoPayload = {
   valorPago?: number;
   origem?: OrigemPedido | null;
   status?: StatusPedido;
+  servicosAdicionais?: string[] | null;
+  servicosOutros?: string | null;
   dataPedido?: string | null;
   dataEntrega?: string | null;
   observacoes?: string | null;
@@ -42,6 +45,7 @@ export async function POST(request: Request) {
     const valorTotal = sanitizeMoney(body.valorTotal);
     const valorPago = sanitizeMoney(body.valorPago);
     const status = resolveStatus(body.status, valorTotal, valorPago);
+    const servicosAdicionais = sanitizeOrderServices(body.servicosAdicionais);
 
     const [pedido] = await getDb()
       .insert(pedidos)
@@ -56,6 +60,8 @@ export async function POST(request: Request) {
         valorTotal,
         valorPago,
         status,
+        servicosAdicionais: servicosAdicionais.length ? servicosAdicionais : null,
+        servicosOutros: body.servicosOutros?.trim() || null,
         dataPedido: normalizeDate(body.dataPedido) || today(),
         dataEntrega: normalizeDate(body.dataEntrega),
         observacoes: body.observacoes?.trim() || null

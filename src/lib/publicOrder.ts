@@ -1,4 +1,5 @@
 import type { CatalogCampo } from "@/types/catalog";
+import { formatOrderServices } from "@/lib/orderServices";
 
 export type PublicOrderField = Pick<
   CatalogCampo,
@@ -68,17 +69,20 @@ export function buildPublicOrderMessage({
   arteNome,
   fields,
   nomeMarca,
+  servicosAdicionais,
   tipoNome,
   values
 }: {
   arteNome: string;
   fields: PublicOrderField[];
   nomeMarca: string;
+  servicosAdicionais?: string[] | null;
   tipoNome?: string | null;
   values: PublicOrderValues;
 }) {
   const tipo = tipoNome ? ` - ${tipoNome}` : "";
   const filledFields = fields.filter((campo) => values[campo.id]?.trim());
+  const serviceLabels = formatOrderServices(servicosAdicionais);
 
   return [
     `*Pedido - ${nomeMarca}*`,
@@ -87,22 +91,28 @@ export function buildPublicOrderMessage({
     ...filledFields.map(
       (campo) =>
         `*${campo.label}:* ${formatPublicOrderValue(campo, values[campo.id])}`
-    )
+    ),
+    ...(serviceLabels.length
+      ? ["", "*Serviços adicionais:*", ...serviceLabels.map((label) => `- ${label}`)]
+      : [])
   ].join("\n");
 }
 
 export function buildPublicOrderObservacoes({
   arteNome,
   fields,
+  servicosAdicionais,
   tipoNome,
   values
 }: {
   arteNome: string;
   fields: PublicOrderField[];
+  servicosAdicionais?: string[] | null;
   tipoNome?: string | null;
   values: PublicOrderValues;
 }) {
   const filledFields = fields.filter((campo) => values[campo.id]?.trim());
+  const serviceLabels = formatOrderServices(servicosAdicionais);
   const lines = [
     "Pedido enviado pelo catálogo público.",
     "",
@@ -113,6 +123,14 @@ export function buildPublicOrderObservacoes({
 
   for (const campo of filledFields) {
     lines.push(`${campo.label}: ${formatPublicOrderValue(campo, values[campo.id])}`);
+  }
+
+  if (serviceLabels.length) {
+    lines.push("", "Serviços adicionais:");
+
+    for (const service of serviceLabels) {
+      lines.push(`- ${service}`);
+    }
   }
 
   return lines.join("\n");

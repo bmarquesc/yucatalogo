@@ -19,6 +19,12 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Modal } from "@/components/painel/Modal";
 import { useToast } from "@/components/painel/ToastProvider";
+import {
+  formatOrderServices,
+  ORDER_SERVICE_OPTIONS,
+  sanitizeOrderServices,
+  type OrderServiceId
+} from "@/lib/orderServices";
 import type {
   CaixaData,
   CaixaGasto,
@@ -50,6 +56,8 @@ const emptyPedido = {
   valorTotal: "",
   valorPago: "",
   status: "em_aberto" as StatusPedido,
+  servicosAdicionais: [] as OrderServiceId[],
+  servicosOutros: "",
   dataPedido: today(),
   dataEntrega: "",
   observacoes: ""
@@ -166,6 +174,15 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
     }));
   }
 
+  function togglePedidoServico(serviceId: OrderServiceId, selected: boolean) {
+    setPedidoForm((current) => ({
+      ...current,
+      servicosAdicionais: selected
+        ? Array.from(new Set([...current.servicosAdicionais, serviceId]))
+        : current.servicosAdicionais.filter((item) => item !== serviceId)
+    }));
+  }
+
   function openNewPedido() {
     setEditingPedidoId(null);
     setPedidoForm(emptyPedido);
@@ -185,6 +202,8 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
       valorTotal: centsToInput(pedido.valorTotal),
       valorPago: centsToInput(pedido.valorPago),
       status: normalizeStatus(pedido.status),
+      servicosAdicionais: sanitizeOrderServices(pedido.servicosAdicionais),
+      servicosOutros: pedido.servicosOutros ?? "",
       dataPedido: pedido.dataPedido ?? today(),
       dataEntrega: pedido.dataEntrega ?? "",
       observacoes: pedido.observacoes ?? ""
@@ -271,6 +290,8 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
           valorTotal: moneyToCents(pedidoForm.valorTotal),
           valorPago: moneyToCents(pedidoForm.valorPago),
           status: pedidoForm.status,
+          servicosAdicionais: pedidoForm.servicosAdicionais,
+          servicosOutros: pedidoForm.servicosOutros,
           dataPedido: pedidoForm.dataPedido,
           dataEntrega: pedidoForm.dataEntrega || null,
           observacoes: pedidoForm.observacoes
@@ -483,64 +504,76 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
 
               {pedidosFiltrados.length ? (
                 <div style={{ display: "grid", gap: 10 }}>
-                  {pedidosFiltrados.map((pedido) => (
-                    <article className="panel-list-item" key={pedido.id}>
-                      <div>
-                        <div className="page-kicker">
-                          {statusLabel(pedido.status)} · {formatDate(pedido.dataPedido)}
-                        </div>
-                        <h3 style={{ fontSize: 18, lineHeight: 1.2, margin: "5px 0 0" }}>
-                          {pedido.clienteNome}
-                        </h3>
-                        <p style={{ color: "var(--mid)", margin: "6px 0 0" }}>
-                          {pedido.arteNome || "Arte não informada"}
-                        </p>
-                        {pedido.dataEntrega ? (
+                  {pedidosFiltrados.map((pedido) => {
+                    const serviceLabels = formatOrderServices(
+                      pedido.servicosAdicionais,
+                      pedido.servicosOutros
+                    );
+
+                    return (
+                      <article className="panel-list-item" key={pedido.id}>
+                        <div>
+                          <div className="page-kicker">
+                            {statusLabel(pedido.status)} · {formatDate(pedido.dataPedido)}
+                          </div>
+                          <h3 style={{ fontSize: 18, lineHeight: 1.2, margin: "5px 0 0" }}>
+                            {pedido.clienteNome}
+                          </h3>
                           <p style={{ color: "var(--mid)", margin: "6px 0 0" }}>
-                            Entrega combinada: {formatDate(pedido.dataEntrega)}
+                            {pedido.arteNome || "Arte não informada"}
                           </p>
-                        ) : null}
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                          <span className="status-pill">
-                            {origemLabel(pedido.origem)}
-                          </span>
-                          {pedido.tag ? (
-                            <span className="status-pill">{pedido.tag}</span>
+                          {pedido.dataEntrega ? (
+                            <p style={{ color: "var(--mid)", margin: "6px 0 0" }}>
+                              Entrega combinada: {formatDate(pedido.dataEntrega)}
+                            </p>
                           ) : null}
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                            <span className="status-pill">
+                              {origemLabel(pedido.origem)}
+                            </span>
+                            {pedido.tag ? (
+                              <span className="status-pill">{pedido.tag}</span>
+                            ) : null}
+                            {serviceLabels.map((label) => (
+                              <span className="status-pill" key={label}>
+                                {label}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                      <div className="panel-list-values">
-                        <strong>{formatMoney(pedido.valorTotal ?? 0)}</strong>
-                        <span>{formatMoney(pedido.valorPago ?? 0)} recebido</span>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button
-                            className="icon-button"
-                            onClick={() => openConfirmation(pedido)}
-                            title="Gerar confirmação para cliente"
-                            type="button"
-                          >
-                            <FileText size={16} aria-hidden="true" />
-                          </button>
-                          <button
-                            className="icon-button"
-                            onClick={() => openEditPedido(pedido)}
-                            title="Editar pedido"
-                            type="button"
-                          >
-                            <Pencil size={16} aria-hidden="true" />
-                          </button>
-                          <button
-                            className="icon-button"
-                            onClick={() => removePedido(pedido)}
-                            title="Excluir pedido"
-                            type="button"
-                          >
-                            <Trash2 size={16} aria-hidden="true" />
-                          </button>
+                        <div className="panel-list-values">
+                          <strong>{formatMoney(pedido.valorTotal ?? 0)}</strong>
+                          <span>{formatMoney(pedido.valorPago ?? 0)} recebido</span>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button
+                              className="icon-button"
+                              onClick={() => openConfirmation(pedido)}
+                              title="Gerar confirmação para cliente"
+                              type="button"
+                            >
+                              <FileText size={16} aria-hidden="true" />
+                            </button>
+                            <button
+                              className="icon-button"
+                              onClick={() => openEditPedido(pedido)}
+                              title="Editar pedido"
+                              type="button"
+                            >
+                              <Pencil size={16} aria-hidden="true" />
+                            </button>
+                            <button
+                              className="icon-button"
+                              onClick={() => removePedido(pedido)}
+                              title="Excluir pedido"
+                              type="button"
+                            >
+                              <Trash2 size={16} aria-hidden="true" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </article>
-                  ))}
+                      </article>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="empty-state">
@@ -850,6 +883,43 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
               </label>
             </div>
 
+            <section className="order-service-panel">
+              <div>
+                <p className="form-label">Serviços adicionais</p>
+                <p style={{ color: "var(--mid)", margin: "6px 0 0" }}>
+                  Marque o que acompanha esse pedido.
+                </p>
+              </div>
+              <div className="order-service-options">
+                {ORDER_SERVICE_OPTIONS.map((service) => (
+                  <label className="order-service-option" key={service.id}>
+                    <input
+                      checked={pedidoForm.servicosAdicionais.includes(service.id)}
+                      onChange={(event) =>
+                        togglePedidoServico(service.id, event.target.checked)
+                      }
+                      type="checkbox"
+                    />
+                    <span>{service.label}</span>
+                  </label>
+                ))}
+              </div>
+              <label className="field">
+                <span className="form-label">Outros serviços</span>
+                <textarea
+                  className="textarea"
+                  onChange={(event) =>
+                    setPedidoForm({
+                      ...pedidoForm,
+                      servicosOutros: event.target.value
+                    })
+                  }
+                  placeholder="Ex.: arte extra, papelaria, alteração personalizada..."
+                  value={pedidoForm.servicosOutros}
+                />
+              </label>
+            </section>
+
             <label className="field">
               <span className="form-label">Observações</span>
               <textarea
@@ -1084,6 +1154,10 @@ function buildPedidoConfirmationText(pedido: CaixaPedido) {
   const valorPago = pedido.valorPago ?? 0;
   const valorRestante = Math.max(valorTotal - valorPago, 0);
   const observacoes = pedido.observacoes?.trim();
+  const serviceLabels = formatOrderServices(
+    pedido.servicosAdicionais,
+    pedido.servicosOutros
+  );
   const lines = [
     `Olá, ${pedido.clienteNome}! Tudo bem?`,
     "",
@@ -1098,6 +1172,10 @@ function buildPedidoConfirmationText(pedido: CaixaPedido) {
     `Valor a pagar: ${formatMoney(valorRestante)}`,
     `Status do pagamento: ${statusLabel(pedido.status)}`
   ];
+
+  if (serviceLabels.length) {
+    lines.push("", "Serviços adicionais:", ...serviceLabels.map((label) => `- ${label}`));
+  }
 
   if (observacoes) {
     lines.push("", "Informações do convite:", observacoes);

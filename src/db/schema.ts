@@ -124,6 +124,8 @@ export const pedidos = pgTable(
     origem: text("origem").default("balcao"),
     status: text("status").default("em_aberto"),
     statusProducao: text("status_producao").default("a_fazer"),
+    servicosAdicionais: text("servicos_adicionais").array(),
+    servicosOutros: text("servicos_outros"),
     dataPedido: date("data_pedido").default(sql`CURRENT_DATE`),
     dataEntrega: date("data_entrega"),
     observacoes: text("observacoes"),

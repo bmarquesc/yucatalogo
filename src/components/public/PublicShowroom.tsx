@@ -27,6 +27,10 @@ import {
   normalizeCatalogSearch,
   type PublicOrderField
 } from "@/lib/publicOrder";
+import {
+  ORDER_SERVICE_OPTIONS,
+  type OrderServiceId
+} from "@/lib/orderServices";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import type { CatalogCampo, PublicCatalog } from "@/types/catalog";
 
@@ -232,6 +236,7 @@ function ShowroomModal({
   const [orderError, setOrderError] = useState("");
   const [sendingOrder, setSendingOrder] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
+  const [servicosAdicionais, setServicosAdicionais] = useState<OrderServiceId[]>([]);
   const slides = arte.midias;
   const currentSlide = slides[slide];
   const orderFields = useMemo(() => buildPublicOrderFields(campos), [campos]);
@@ -244,6 +249,7 @@ function ShowroomModal({
     setOrderError("");
     setSendingOrder(false);
     setValues({});
+    setServicosAdicionais([]);
   }, [arte.id]);
 
   function move(direction: -1 | 1) {
@@ -276,6 +282,7 @@ function ShowroomModal({
       arteNome: arte.nome,
       fields: orderFields,
       nomeMarca,
+      servicosAdicionais,
       tipoNome: arte.tipo?.nomePublico,
       values
     });
@@ -287,6 +294,7 @@ function ShowroomModal({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           arteId: arte.id,
+          servicosAdicionais,
           values
         })
       });
@@ -307,6 +315,7 @@ function ShowroomModal({
       }
 
       setValues({});
+      setServicosAdicionais([]);
       setOrderOpen(false);
     } catch {
       whatsappTarget?.close();
@@ -314,6 +323,14 @@ function ShowroomModal({
     } finally {
       setSendingOrder(false);
     }
+  }
+
+  function toggleServicoAdicional(serviceId: OrderServiceId, selected: boolean) {
+    setServicosAdicionais((current) =>
+      selected
+        ? Array.from(new Set([...current, serviceId]))
+        : current.filter((item) => item !== serviceId)
+    );
   }
 
   return (
@@ -457,6 +474,8 @@ function ShowroomModal({
           }}
           onSubmit={submit}
           sending={sendingOrder}
+          servicosAdicionais={servicosAdicionais}
+          onServicoChange={toggleServicoAdicional}
           values={values}
         />
       ) : null}
@@ -606,7 +625,9 @@ function PublicOrderPopup({
   onChange,
   onClose,
   onSubmit,
+  onServicoChange,
   sending,
+  servicosAdicionais,
   values
 }: {
   error: string;
@@ -614,7 +635,9 @@ function PublicOrderPopup({
   onChange: (id: string, value: string) => void;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onServicoChange: (id: OrderServiceId, selected: boolean) => void;
   sending: boolean;
+  servicosAdicionais: OrderServiceId[];
   values: Record<string, string>;
 }) {
   return (
@@ -653,6 +676,23 @@ function PublicOrderPopup({
               value={values[campo.id] || ""}
             />
           ))}
+          <section className="public-service-options">
+            <p className="public-field-label">Serviços adicionais</p>
+            <div className="public-service-list">
+              {ORDER_SERVICE_OPTIONS.map((service) => (
+                <label className="public-service-option" key={service.id}>
+                  <input
+                    checked={servicosAdicionais.includes(service.id)}
+                    onChange={(event) =>
+                      onServicoChange(service.id, event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                  <span>{service.label}</span>
+                </label>
+              ))}
+            </div>
+          </section>
           {error ? <p className="public-order-error">{error}</p> : null}
           <button className={publicButtonClass(true)} disabled={sending} type="submit">
             {sending ? (

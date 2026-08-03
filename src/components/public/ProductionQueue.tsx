@@ -15,6 +15,7 @@ import type {
   ProducaoPedido,
   StatusProducao
 } from "@/types/producao";
+import { formatOrderServices } from "@/lib/orderServices";
 
 type ProductionQueueProps = {
   conviteira: ProducaoData["conviteira"];
@@ -258,6 +259,10 @@ function ProductionCard({
   saving: boolean;
 }) {
   const status = normalizeStatusProducao(pedido.statusProducao);
+  const serviceLabels = formatOrderServices(
+    pedido.servicosAdicionais,
+    pedido.servicosOutros
+  );
 
   return (
     <article
@@ -316,6 +321,9 @@ function ProductionCard({
         <div className="production-preview-meta">
           {pedido.tipoNomePublico ? <span>{pedido.tipoNomePublico}</span> : null}
           {pedido.arteTema ? <span>{pedido.arteTema}</span> : null}
+          {serviceLabels.map((label) => (
+            <span key={label}>{label}</span>
+          ))}
           <span>Pedido {formatDate(pedido.dataPedido)}</span>
         </div>
 
@@ -340,6 +348,10 @@ function ProductionDetailsModal({
 }) {
   const status = normalizeStatusProducao(pedido.statusProducao);
   const titleId = `production-details-${pedido.id}`;
+  const serviceLabels = formatOrderServices(
+    pedido.servicosAdicionais,
+    pedido.servicosOutros
+  );
 
   return (
     <div className="production-modal-backdrop" onMouseDown={onClose}>
@@ -425,6 +437,13 @@ function ProductionDetailsModal({
               <dt>Entrega</dt>
               <dd>{formatDate(pedido.dataEntrega)}</dd>
             </dl>
+
+            {serviceLabels.length ? (
+              <div className="production-notes">
+                <span>Serviços adicionais</span>
+                <p>{serviceLabels.map((label) => `- ${label}`).join("\n")}</p>
+              </div>
+            ) : null}
 
             {pedido.observacoes ? (
               <div className="production-notes">

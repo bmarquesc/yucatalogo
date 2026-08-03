@@ -12,6 +12,8 @@ export type CaixaPedido = {
   valorTotal: number | null;
   valorPago: number | null;
   status: StatusPedido | string | null;
+  servicosAdicionais: string[] | null;
+  servicosOutros: string | null;
   dataPedido: string | null;
   dataEntrega: string | null;
   observacoes: string | null;

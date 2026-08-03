@@ -10,6 +10,8 @@ export type ProducaoPedido = {
   tipoNomePublico: string | null;
   canvaUrl: string | null;
   midiaUrl: string | null;
+  servicosAdicionais: string[] | null;
+  servicosOutros: string | null;
   dataPedido: string | null;
   dataEntrega: string | null;
   observacoes: string | null;

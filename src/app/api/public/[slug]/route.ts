@@ -13,6 +13,7 @@ import {
   formatPublicArtePedidoNome,
   type PublicOrderValues
 } from "@/lib/publicOrder";
+import { sanitizeOrderServices } from "@/lib/orderServices";
 import { sanitizeWhatsApp } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export async function GET(
 type PublicPedidoPayload = {
   arteId?: string;
   values?: PublicOrderValues;
+  servicosAdicionais?: string[] | null;
 };
 
 export async function POST(
@@ -58,6 +60,7 @@ export async function POST(
     }
 
     const values = body.values ?? {};
+    const servicosAdicionais = sanitizeOrderServices(body.servicosAdicionais);
     const fields = buildPublicOrderFields(catalog.campos);
     const clienteNome = findPublicOrderClienteNome(fields, values);
     const clienteWhatsapp = findPublicOrderWhatsapp(fields, values);
@@ -84,9 +87,11 @@ export async function POST(
         status: "em_aberto",
         dataPedido: today(),
         dataEntrega: findPublicOrderDataEvento(fields, values),
+        servicosAdicionais: servicosAdicionais.length ? servicosAdicionais : null,
         observacoes: buildPublicOrderObservacoes({
           arteNome: arte.nome,
           fields,
+          servicosAdicionais,
           tipoNome,
           values
         }),
