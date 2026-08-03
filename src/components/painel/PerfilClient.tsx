@@ -11,6 +11,7 @@ import {
   DEFAULT_CATALOG_FONT,
   getCatalogFontOption
 } from "@/lib/catalogFonts";
+import { buildPublicCatalogUrl } from "@/lib/domains";
 
 type ConviteiraForm = {
   nomeMarca: string;
@@ -44,8 +45,9 @@ export function PerfilClient() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [showOnboardingMessage, setShowOnboardingMessage] = useState(false);
+  const [fallbackOrigin, setFallbackOrigin] = useState("");
 
-  const publicUrl = `https://yucatalogo.site/${form.slug || "seu-slug"}`;
+  const publicUrl = buildPublicCatalogUrl(form.slug || "seu-slug", fallbackOrigin);
 
   async function load() {
     setLoading(true);
@@ -75,6 +77,7 @@ export function PerfilClient() {
   }
 
   useEffect(() => {
+    setFallbackOrigin(window.location.origin);
     setShowOnboardingMessage(new URLSearchParams(window.location.search).has("novo"));
     void load();
   }, []);

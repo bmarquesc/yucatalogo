@@ -16,6 +16,7 @@ import { UserButton } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 
 import { useToast } from "@/components/painel/ToastProvider";
+import { buildPublicCatalogUrl } from "@/lib/domains";
 
 const links = [
   { href: "/painel/pedidos", label: "Pedidos", icon: Wallet },
@@ -48,6 +49,7 @@ export function Sidebar({
   const [catalogoList, setCatalogoList] = useState(catalogos);
   const [activeId, setActiveId] = useState(activeCatalogoId);
   const [busy, setBusy] = useState(false);
+  const [fallbackOrigin, setFallbackOrigin] = useState("");
   const activeCatalogo =
     catalogoList.find((catalogo) => catalogo.id === activeId) ?? {
       id: activeCatalogoId,
@@ -56,6 +58,7 @@ export function Sidebar({
     };
 
   useEffect(() => {
+    setFallbackOrigin(window.location.origin);
     setCatalogoList(catalogos);
     setActiveId(activeCatalogoId);
   }, [activeCatalogoId, catalogos]);
@@ -218,7 +221,11 @@ export function Sidebar({
         })}
       </nav>
 
-      <Link className="sidebar-link" href={`/${activeCatalogo.slug}`} target="_blank">
+      <Link
+        className="sidebar-link"
+        href={buildPublicCatalogUrl(activeCatalogo.slug, fallbackOrigin)}
+        target="_blank"
+      >
         <LayoutDashboard size={17} aria-hidden="true" />
         <span>Ver catálogo</span>
       </Link>
