@@ -94,6 +94,7 @@ export async function migrateDatabase() {
       arte_nome TEXT,
       valor_total INT DEFAULT 0,
       valor_pago INT DEFAULT 0,
+      origem TEXT DEFAULT 'balcao' CHECK (origem IN ('balcao','catalogo')),
       status TEXT DEFAULT 'em_aberto' CHECK (status IN ('em_aberto','sinal_pago','pago','cancelado')),
       status_producao TEXT DEFAULT 'a_fazer' CHECK (status_producao IN ('a_fazer','fazendo','pronto_enviado')),
       data_pedido DATE DEFAULT CURRENT_DATE,
@@ -111,6 +112,32 @@ export async function migrateDatabase() {
   await db.execute(sql`
     ALTER TABLE pedidos
     ADD COLUMN IF NOT EXISTS status_producao TEXT DEFAULT 'a_fazer'
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE pedidos
+    ADD COLUMN IF NOT EXISTS origem TEXT DEFAULT 'balcao'
+  `);
+
+  await db.execute(sql`
+    UPDATE pedidos
+    SET origem = 'balcao'
+    WHERE origem IS NULL
+  `);
+
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'pedidos_origem_check'
+      ) THEN
+        ALTER TABLE pedidos
+        ADD CONSTRAINT pedidos_origem_check
+        CHECK (origem IN ('balcao','catalogo'));
+      END IF;
+    END $$;
   `);
 
   await db.execute(sql`

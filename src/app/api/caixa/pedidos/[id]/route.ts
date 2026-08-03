@@ -5,7 +5,7 @@ import { getDb } from "@/db";
 import { pedidos } from "@/db/schema";
 import { handleRouteError, jsonError, readJson } from "@/lib/api";
 import { requireConviteira } from "@/lib/auth";
-import type { StatusPedido } from "@/types/caixa";
+import type { OrigemPedido, StatusPedido } from "@/types/caixa";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +24,7 @@ type PedidoPayload = {
   arteNome?: string | null;
   valorTotal?: number;
   valorPago?: number;
+  origem?: OrigemPedido | null;
   status?: StatusPedido;
   dataPedido?: string | null;
   dataEntrega?: string | null;
@@ -54,6 +55,7 @@ export async function PATCH(
         clienteWhatsapp: body.clienteWhatsapp?.trim() || null,
         tag: body.tag?.trim() || null,
         arteNome: body.arteNome?.trim() || null,
+        origem: resolveOrigem(body.origem),
         valorTotal,
         valorPago,
         status,
@@ -121,6 +123,10 @@ function resolveStatus(
   }
 
   return "em_aberto";
+}
+
+function resolveOrigem(origem: OrigemPedido | null | undefined): OrigemPedido {
+  return origem === "catalogo" ? "catalogo" : "balcao";
 }
 
 function normalizeDate(value: string | null | undefined) {

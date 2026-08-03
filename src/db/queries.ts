@@ -223,6 +223,12 @@ export async function getCaixaForConviteira(
       aReceber: Math.max(bruto - recebido, 0),
       gastos,
       liquido: recebido - gastos,
+      pedidosBalcaoCount: pedidosAtivos.filter(
+        (pedido) => normalizeOrigemPedido(pedido.origem) === "balcao"
+      ).length,
+      pedidosCatalogoCount: pedidosAtivos.filter(
+        (pedido) => normalizeOrigemPedido(pedido.origem) === "catalogo"
+      ).length,
       pedidosCount: pedidosAtivos.length
     },
     pedidos: pedidosData,
@@ -526,6 +532,7 @@ function toCaixaPedido(pedido: typeof pedidos.$inferSelect): CaixaPedido {
     clienteWhatsapp: pedido.clienteWhatsapp,
     tag: pedido.tag,
     arteNome: pedido.arteNome,
+    origem: normalizeOrigemPedido(pedido.origem),
     valorTotal: pedido.valorTotal,
     valorPago: pedido.valorPago,
     status: pedido.status,
@@ -533,6 +540,10 @@ function toCaixaPedido(pedido: typeof pedidos.$inferSelect): CaixaPedido {
     dataEntrega: pedido.dataEntrega,
     observacoes: pedido.observacoes
   };
+}
+
+function normalizeOrigemPedido(origem: string | null | undefined) {
+  return origem === "catalogo" ? "catalogo" : "balcao";
 }
 
 function toCaixaGasto(gasto: typeof gastosCaixa.$inferSelect): CaixaGasto {

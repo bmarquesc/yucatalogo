@@ -1,4 +1,5 @@
 export type StatusPedido = "em_aberto" | "sinal_pago" | "pago" | "cancelado";
+export type OrigemPedido = "balcao" | "catalogo";
 
 export type CaixaPedido = {
   id: string;
@@ -7,6 +8,7 @@ export type CaixaPedido = {
   clienteWhatsapp: string | null;
   tag: string | null;
   arteNome: string | null;
+  origem: OrigemPedido | string | null;
   valorTotal: number | null;
   valorPago: number | null;
   status: StatusPedido | string | null;
@@ -30,6 +32,8 @@ export type CaixaResumo = {
   aReceber: number;
   gastos: number;
   liquido: number;
+  pedidosBalcaoCount: number;
+  pedidosCatalogoCount: number;
   pedidosCount: number;
 };
 

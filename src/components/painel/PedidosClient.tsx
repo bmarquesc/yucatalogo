@@ -19,7 +19,13 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Modal } from "@/components/painel/Modal";
 import { useToast } from "@/components/painel/ToastProvider";
-import type { CaixaData, CaixaGasto, CaixaPedido, StatusPedido } from "@/types/caixa";
+import type {
+  CaixaData,
+  CaixaGasto,
+  CaixaPedido,
+  OrigemPedido,
+  StatusPedido
+} from "@/types/caixa";
 import type { CatalogArte } from "@/types/catalog";
 
 const statusLabels: Record<StatusPedido, string> = {
@@ -29,12 +35,18 @@ const statusLabels: Record<StatusPedido, string> = {
   cancelado: "Cancelado"
 };
 
+const origemLabels: Record<OrigemPedido, string> = {
+  balcao: "Balcão",
+  catalogo: "Catálogo"
+};
+
 const emptyPedido = {
   clienteNome: "",
   clienteWhatsapp: "",
   tag: "",
   arteId: "",
   arteNome: "",
+  origem: "balcao" as OrigemPedido,
   valorTotal: "",
   valorPago: "",
   status: "em_aberto" as StatusPedido,
@@ -54,6 +66,8 @@ const emptyGasto = {
 export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
   const notify = useToast();
   const [mes, setMes] = useState(() => today().slice(0, 7));
+  const [origemFiltro, setOrigemFiltro] =
+    useState<OrigemPedido | "todos">("todos");
   const [caixa, setCaixa] = useState<CaixaData | null>(null);
   const [artes, setArtes] = useState<CatalogArte[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +108,18 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
       .sort((a, b) => String(a.dataEntrega).localeCompare(String(b.dataEntrega)))
       .slice(0, 4);
   }, [caixa?.pedidos]);
+
+  const pedidosFiltrados = useMemo(() => {
+    const pedidos = caixa?.pedidos ?? [];
+
+    if (origemFiltro === "todos") {
+      return pedidos;
+    }
+
+    return pedidos.filter(
+      (pedido) => normalizeOrigem(pedido.origem) === origemFiltro
+    );
+  }, [caixa?.pedidos, origemFiltro]);
 
   async function load() {
     setLoading(true);
@@ -155,6 +181,7 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
       tag: pedido.tag ?? "",
       arteId: pedido.arteId ?? "",
       arteNome: pedido.arteNome ?? "",
+      origem: normalizeOrigem(pedido.origem),
       valorTotal: centsToInput(pedido.valorTotal),
       valorPago: centsToInput(pedido.valorPago),
       status: normalizeStatus(pedido.status),
@@ -240,6 +267,7 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
           tag: pedidoForm.tag,
           arteId: pedidoForm.arteId || null,
           arteNome: pedidoForm.arteNome,
+          origem: pedidoForm.origem,
           valorTotal: moneyToCents(pedidoForm.valorTotal),
           valorPago: moneyToCents(pedidoForm.valorPago),
           status: pedidoForm.status,
@@ -397,6 +425,14 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
             <MetricCard label="A receber" value={formatMoney(resumo?.aReceber ?? 0)} />
             <MetricCard label="Gastos" value={formatMoney(resumo?.gastos ?? 0)} />
             <MetricCard
+              label="Pedidos balcão"
+              value={`${resumo?.pedidosBalcaoCount ?? 0}`}
+            />
+            <MetricCard
+              label="Pedidos catálogo"
+              value={`${resumo?.pedidosCatalogoCount ?? 0}`}
+            />
+            <MetricCard
               label="Líquido no caixa"
               tone={(resumo?.liquido ?? 0) < 0 ? "danger" : "default"}
               value={formatMoney(resumo?.liquido ?? 0)}
@@ -421,9 +457,33 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
                 <span className="status-pill">{resumo?.pedidosCount ?? 0} ativos</span>
               </div>
 
-              {caixa?.pedidos.length ? (
+              <div className="origin-filter" aria-label="Filtrar origem dos pedidos">
+                <button
+                  data-active={origemFiltro === "todos"}
+                  onClick={() => setOrigemFiltro("todos")}
+                  type="button"
+                >
+                  Todos
+                </button>
+                <button
+                  data-active={origemFiltro === "balcao"}
+                  onClick={() => setOrigemFiltro("balcao")}
+                  type="button"
+                >
+                  Balcão
+                </button>
+                <button
+                  data-active={origemFiltro === "catalogo"}
+                  onClick={() => setOrigemFiltro("catalogo")}
+                  type="button"
+                >
+                  Catálogo
+                </button>
+              </div>
+
+              {pedidosFiltrados.length ? (
                 <div style={{ display: "grid", gap: 10 }}>
-                  {caixa.pedidos.map((pedido) => (
+                  {pedidosFiltrados.map((pedido) => (
                     <article className="panel-list-item" key={pedido.id}>
                       <div>
                         <div className="page-kicker">
@@ -440,11 +500,14 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
                             Entrega combinada: {formatDate(pedido.dataEntrega)}
                           </p>
                         ) : null}
-                        {pedido.tag ? (
-                          <span className="status-pill" style={{ marginTop: 8 }}>
-                            {pedido.tag}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                          <span className="status-pill">
+                            {origemLabel(pedido.origem)}
                           </span>
-                        ) : null}
+                          {pedido.tag ? (
+                            <span className="status-pill">{pedido.tag}</span>
+                          ) : null}
+                        </div>
                       </div>
                       <div className="panel-list-values">
                         <strong>{formatMoney(pedido.valorTotal ?? 0)}</strong>
@@ -480,7 +543,11 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
                   ))}
                 </div>
               ) : (
-                <div className="empty-state">Nenhum pedido neste mês.</div>
+                <div className="empty-state">
+                  {caixa?.pedidos.length
+                    ? "Nenhum pedido nesse filtro."
+                    : "Nenhum pedido neste mês."}
+                </div>
               )}
             </section>
 
@@ -965,6 +1032,14 @@ function statusLabel(status: CaixaPedido["status"]) {
   }
 
   return "Em aberto";
+}
+
+function normalizeOrigem(origem: CaixaPedido["origem"]): OrigemPedido {
+  return origem === "catalogo" ? "catalogo" : "balcao";
+}
+
+function origemLabel(origem: CaixaPedido["origem"]) {
+  return origemLabels[normalizeOrigem(origem)];
 }
 
 function formatMoney(cents: number) {

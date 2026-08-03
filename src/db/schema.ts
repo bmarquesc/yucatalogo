@@ -119,6 +119,7 @@ export const pedidos = pgTable(
     arteNome: text("arte_nome"),
     valorTotal: integer("valor_total").default(0),
     valorPago: integer("valor_pago").default(0),
+    origem: text("origem").default("balcao"),
     status: text("status").default("em_aberto"),
     statusProducao: text("status_producao").default("a_fazer"),
     dataPedido: date("data_pedido").default(sql`CURRENT_DATE`),
@@ -134,6 +135,10 @@ export const pedidos = pgTable(
     statusProducaoCheck: check(
       "pedidos_status_producao_check",
       sql`${table.statusProducao} IN ('a_fazer','fazendo','pronto_enviado')`
+    ),
+    origemCheck: check(
+      "pedidos_origem_check",
+      sql`${table.origem} IN ('balcao','catalogo')`
     )
   })
 );

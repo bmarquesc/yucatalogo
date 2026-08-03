@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Loader2,
   Maximize2,
   MessageCircle,
   Search,
@@ -19,59 +20,15 @@ import {
   type CSSProperties
 } from "react";
 
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { getCatalogFontOption } from "@/lib/catalogFonts";
+import {
+  buildPublicOrderFields,
+  buildPublicOrderMessage,
+  normalizeCatalogSearch,
+  type PublicOrderField
+} from "@/lib/publicOrder";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import type { CatalogCampo, PublicCatalog } from "@/types/catalog";
-
-type PublicOrderField = Pick<
-  CatalogCampo,
-  "id" | "label" | "tipo" | "opcoes" | "obrigatorio"
->;
-
-const defaultPublicOrderFields: PublicOrderField[] = [
-  {
-    id: "nome-aniversariante",
-    label: "Nome da aniversariante",
-    tipo: "texto",
-    opcoes: null,
-    obrigatorio: true
-  },
-  {
-    id: "data-evento",
-    label: "Data do evento",
-    tipo: "data",
-    opcoes: null,
-    obrigatorio: true
-  },
-  {
-    id: "horario",
-    label: "Horário",
-    tipo: "hora",
-    opcoes: null,
-    obrigatorio: true
-  },
-  {
-    id: "local-evento",
-    label: "Local do evento",
-    tipo: "textarea",
-    opcoes: null,
-    obrigatorio: false
-  },
-  {
-    id: "whatsapp-mae",
-    label: "WhatsApp da mãe da aniversariante",
-    tipo: "telefone",
-    opcoes: null,
-    obrigatorio: true
-  },
-  {
-    id: "observacoes",
-    label: "Observações",
-    tipo: "textarea",
-    opcoes: null,
-    obrigatorio: false
-  }
-];
 
 export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
   const [activeTipo, setActiveTipo] = useState("todos");
@@ -229,6 +186,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
           campos={catalog.campos}
           nomeMarca={catalog.conviteira.nomeMarca}
           onClose={() => setSelectedArte(null)}
+          slug={catalog.conviteira.slug}
           whatsapp={catalog.conviteira.whatsapp}
         />
       ) : null}
@@ -241,18 +199,22 @@ function ShowroomModal({
   campos,
   nomeMarca,
   onClose,
+  slug,
   whatsapp
 }: {
   arte: PublicCatalog["artes"][number];
   campos: CatalogCampo[];
   nomeMarca: string;
   onClose: () => void;
+  slug: string;
   whatsapp: string;
 }) {
   const [slide, setSlide] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [expandedSlide, setExpandedSlide] = useState<number | null>(null);
   const [orderOpen, setOrderOpen] = useState(false);
+  const [orderError, setOrderError] = useState("");
+  const [sendingOrder, setSendingOrder] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const slides = arte.midias;
   const currentSlide = slides[slide];
@@ -262,6 +224,8 @@ function ShowroomModal({
     setSlide(0);
     setExpandedSlide(null);
     setOrderOpen(false);
+    setOrderError("");
+    setSendingOrder(false);
     setValues({});
   }, [arte.id]);
 
@@ -286,20 +250,53 @@ function ShowroomModal({
     setTouchStart(null);
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const tipo = arte.tipo?.nomePublico ? ` - ${arte.tipo.nomePublico}` : "";
-    const lines = [
-      `*Pedido - ${nomeMarca}*`,
-      "",
-      `*Arte:* ${arte.nome}${tipo}`,
-      ...orderFields
-        .filter((campo) => values[campo.id])
-        .map((campo) => `*${campo.label}:* ${formatCampoValue(campo, values[campo.id])}`)
-    ];
+    setOrderError("");
+    setSendingOrder(true);
 
-    window.open(buildWhatsAppUrl(whatsapp, lines.join("\n")), "_blank", "noopener");
-    setOrderOpen(false);
+    const message = buildPublicOrderMessage({
+      arteNome: arte.nome,
+      fields: orderFields,
+      nomeMarca,
+      tipoNome: arte.tipo?.nomePublico,
+      values
+    });
+    const whatsappTarget = window.open("", "_blank");
+
+    try {
+      const response = await fetch(`/api/public/${encodeURIComponent(slug)}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          arteId: arte.id,
+          values
+        })
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        whatsappTarget?.close();
+        setOrderError(data.error || "Não foi possível enviar o pedido.");
+        return;
+      }
+
+      const whatsappUrl = buildWhatsAppUrl(whatsapp, message);
+
+      if (whatsappTarget) {
+        whatsappTarget.location.href = whatsappUrl;
+      } else {
+        window.location.href = whatsappUrl;
+      }
+
+      setValues({});
+      setOrderOpen(false);
+    } catch {
+      whatsappTarget?.close();
+      setOrderError("Não foi possível enviar o pedido. Tente novamente.");
+    } finally {
+      setSendingOrder(false);
+    }
   }
 
   return (
@@ -415,7 +412,10 @@ function ShowroomModal({
             ) : null}
             <button
               className={publicButtonClass(true)}
-              onClick={() => setOrderOpen(true)}
+              onClick={() => {
+                setOrderError("");
+                setOrderOpen(true);
+              }}
               type="button"
             >
               <MessageCircle size={17} aria-hidden="true" />
@@ -427,12 +427,18 @@ function ShowroomModal({
 
       {orderOpen ? (
         <PublicOrderPopup
+          error={orderError}
           fields={orderFields}
           onChange={(id, value) =>
             setValues((current) => ({ ...current, [id]: value }))
           }
-          onClose={() => setOrderOpen(false)}
+          onClose={() => {
+            if (!sendingOrder) {
+              setOrderOpen(false);
+            }
+          }}
           onSubmit={submit}
+          sending={sendingOrder}
           values={values}
         />
       ) : null}
@@ -577,16 +583,20 @@ function ExpandedShowroomMedia({
 }
 
 function PublicOrderPopup({
+  error,
   fields,
   onChange,
   onClose,
   onSubmit,
+  sending,
   values
 }: {
+  error: string;
   fields: PublicOrderField[];
   onChange: (id: string, value: string) => void;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  sending: boolean;
   values: Record<string, string>;
 }) {
   return (
@@ -625,9 +635,14 @@ function PublicOrderPopup({
               value={values[campo.id] || ""}
             />
           ))}
-          <button className={publicButtonClass(true)} type="submit">
-            <MessageCircle size={17} aria-hidden="true" />
-            Enviar pedido
+          {error ? <p className="public-order-error">{error}</p> : null}
+          <button className={publicButtonClass(true)} disabled={sending} type="submit">
+            {sending ? (
+              <Loader2 className="animate-spin" size={17} aria-hidden="true" />
+            ) : (
+              <MessageCircle size={17} aria-hidden="true" />
+            )}
+            {sending ? "Enviando..." : "Enviar pedido"}
           </button>
         </form>
       </section>
@@ -734,66 +749,4 @@ function inputType(tipo: CatalogCampo["tipo"]) {
   }
 
   return "text";
-}
-
-function formatCampoValue(campo: PublicOrderField, value: string) {
-  if (campo.tipo !== "data") {
-    return value;
-  }
-
-  return new Date(`${value}T12:00`).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  });
-}
-
-function buildPublicOrderFields(campos: CatalogCampo[]): PublicOrderField[] {
-  const source = campos.length ? campos : defaultPublicOrderFields;
-
-  return source.map((campo) => ({
-    id: campo.id,
-    label: publicOrderLabel(campo.label),
-    tipo: campo.tipo,
-    opcoes: campo.opcoes,
-    obrigatorio: campo.obrigatorio
-  }));
-}
-
-function publicOrderLabel(label: string) {
-  const normalized = normalizeCatalogSearch(label);
-
-  if (normalized.includes("aniversariante")) {
-    return "Nome da aniversariante";
-  }
-
-  if (normalized.includes("data") && normalized.includes("evento")) {
-    return "Data do evento";
-  }
-
-  if (normalized.includes("horario")) {
-    return "Horário";
-  }
-
-  if (normalized.includes("local")) {
-    return "Local do evento";
-  }
-
-  if (normalized.includes("whatsapp") || normalized.includes("telefone")) {
-    return "WhatsApp da mãe da aniversariante";
-  }
-
-  if (normalized.includes("observ")) {
-    return "Observações";
-  }
-
-  return label;
-}
-
-function normalizeCatalogSearch(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
 }
