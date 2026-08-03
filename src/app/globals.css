@@ -52,11 +52,174 @@ button {
 
 .auth-page {
   align-items: center;
-  background: var(--cream);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0)),
+    #fde4ea;
   display: flex;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 32px 16px;
+}
+
+.auth-card {
+  align-items: center;
+  background: var(--paper);
+  border: 1px solid rgba(23, 19, 38, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 24px 58px rgba(54, 39, 51, 0.18);
+  display: flex;
+  flex-direction: column;
+  max-width: 400px;
+  overflow: hidden;
+  padding: 32px 38px 0;
+  width: min(100%, 400px);
+}
+
+.auth-logo {
+  height: auto;
+  margin-bottom: 8px;
+  max-width: 148px;
+  object-fit: contain;
+  width: 38%;
+}
+
+.auth-title {
+  color: #171326;
+  font-family: Poppins, ui-sans-serif, system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0;
+  text-align: center;
+}
+
+.auth-subtitle {
+  color: #726878;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 8px 0 24px;
+  text-align: center;
+}
+
+.auth-card .cl-rootBox,
+.auth-clerk-root {
+  width: 100%;
+}
+
+.auth-card .cl-cardBox,
+.auth-card .cl-card,
+.auth-clerk-card-box,
+.auth-clerk-card {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  max-width: none;
+  padding: 0;
+  width: 100%;
+}
+
+.auth-card .cl-main,
+.auth-clerk-main {
+  gap: 22px;
+  padding: 0;
+}
+
+.auth-card .cl-header,
+.auth-card .cl-logoBox {
+  display: none;
+}
+
+.auth-card .cl-form,
+.auth-clerk-form {
+  gap: 18px;
+}
+
+.auth-card .cl-formFieldLabel,
+.auth-field-label {
+  color: #171326;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.auth-card .cl-formFieldInput,
+.auth-input {
+  background: #eef4ff;
+  border: 1px solid #d7dfef;
+  color: #171326;
+  font-size: 13px;
+  min-height: 34px;
+}
+
+.auth-card .cl-formFieldInput:focus,
+.auth-input:focus {
+  border-color: #ea6f87;
+  box-shadow: 0 0 0 3px rgba(234, 111, 135, 0.16);
+}
+
+.auth-card .cl-formButtonPrimary,
+.auth-primary-button {
+  background: #ea6f87;
+  border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(234, 111, 135, 0.24);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 34px;
+}
+
+.auth-card .cl-formButtonPrimary:hover,
+.auth-primary-button:hover {
+  background: #df617b;
+}
+
+.auth-card .cl-formFieldAction,
+.auth-card .cl-footerActionLink,
+.auth-link {
+  color: #ea6f87;
+  font-weight: 700;
+}
+
+.auth-card .cl-formFieldInputShowPasswordButton,
+.auth-password-button {
+  color: #8c8593;
+}
+
+.auth-card .cl-footer,
+.auth-clerk-footer {
+  background: linear-gradient(180deg, #ffffff, #fbfbfb);
+  border-top: 1px solid rgba(23, 19, 38, 0.08);
+  margin: 30px -38px 0;
+  padding: 16px 38px 14px;
+  width: calc(100% + 76px);
+}
+
+.auth-card .cl-footerAction,
+.auth-footer-action {
+  justify-content: center;
+}
+
+.auth-card .cl-footerPages,
+.auth-footer-pages {
+  opacity: 0.78;
+}
+
+@media (max-width: 520px) {
+  .auth-page {
+    padding: 22px 14px;
+  }
+
+  .auth-card {
+    padding: 28px 24px 0;
+  }
+
+  .auth-card .cl-footer,
+  .auth-clerk-footer {
+    margin-left: -24px;
+    margin-right: -24px;
+    padding-left: 24px;
+    padding-right: 24px;
+    width: calc(100% + 48px);
+  }
 }
 
 .panel-layout {

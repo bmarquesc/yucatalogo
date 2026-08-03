@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 
 import "@/app/globals.css";
+import { clerkLocalization } from "@/lib/clerkLocalization";
 
 export const metadata: Metadata = {
   title: "Painel",
@@ -14,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider localization={clerkLocalization}>
       <html lang="pt-BR">
         <head>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
