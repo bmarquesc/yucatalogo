@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ExternalLink,
   Loader2,
+  Menu,
   Maximize2,
   MessageCircle,
   Search,
@@ -40,13 +41,22 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
   const [search, setSearch] = useState("");
   const [selectedSubfilters, setSelectedSubfilters] = useState<Record<string, string>>({});
   const [openFiltroId, setOpenFiltroId] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const featuredArte = catalog.artes.find((arte) => arte.midias.length);
   const featuredMedia =
     featuredArte?.midias.find((media) => media.tipo === "imagem") ??
     featuredArte?.midias[0] ??
     null;
-  const heroImage = catalog.conviteira.bannerUrl || featuredMedia?.url || "";
-  const hasCustomBanner = Boolean(catalog.conviteira.bannerUrl);
+  const heroImage =
+    catalog.conviteira.bannerUrl ||
+    catalog.conviteira.bannerMobileUrl ||
+    featuredMedia?.url ||
+    "";
+  const hasCustomBanner = Boolean(
+    catalog.conviteira.bannerUrl || catalog.conviteira.bannerMobileUrl
+  );
+  const hasMobileBanner = Boolean(catalog.conviteira.bannerMobileUrl);
+  const filterGroups = catalog.filtros.filter((filtro) => filtro.subfiltros.length);
 
   const activeTipoData = catalog.tipos.find((tipo) => tipo.id === activeTipo);
   const filteredArtes = useMemo(() => {
@@ -93,32 +103,247 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
     "--public-hero-image-fit": "cover"
   } as CSSProperties;
 
+  function selectTipo(tipoId: string) {
+    setActiveTipo(tipoId);
+    setIsMobileMenuOpen(false);
+  }
+
+  function clearSubfilters() {
+    setSelectedSubfilters({});
+    setOpenFiltroId(null);
+  }
+
   function selectSubfilter(filtroId: string, subfiltroId: string) {
     setSelectedSubfilters((current) => ({
       ...current,
       [filtroId]: current[filtroId] === subfiltroId ? "" : subfiltroId
     }));
     setOpenFiltroId(null);
+    setIsMobileMenuOpen(false);
   }
 
   return (
     <main className="public-shell" style={shellStyle}>
+      <header className="public-shop-header">
+        <button
+          aria-label="Abrir filtros"
+          className="public-mobile-menu-button"
+          onClick={() => setIsMobileMenuOpen(true)}
+          type="button"
+        >
+          <Menu size={24} aria-hidden="true" />
+        </button>
+
+        <a className="public-shop-brand" href="#catalogo">
+          {catalog.conviteira.logoUrl ? (
+            <img
+              alt=""
+              className="public-logo"
+              src={catalog.conviteira.logoUrl}
+            />
+          ) : (
+            <span className="public-logo-fallback">
+              {catalog.conviteira.nomeMarca.charAt(0)}
+            </span>
+          )}
+          <span>{catalog.conviteira.nomeMarca}</span>
+        </a>
+
+        <nav aria-label="Filtros principais" className="public-shop-nav">
+          <button
+            className="public-shop-nav-button"
+            data-active={activeTipo === "todos"}
+            onClick={() => selectTipo("todos")}
+            type="button"
+          >
+            Todos
+          </button>
+          {catalog.tipos.map((tipo) => (
+            <button
+              className="public-shop-nav-button"
+              data-active={activeTipo === tipo.id}
+              key={tipo.id}
+              onClick={() => selectTipo(tipo.id)}
+              type="button"
+            >
+              {tipo.nomePublico}
+            </button>
+          ))}
+          {filterGroups.map((filtro) => (
+            <div className="public-filter-group public-header-filter" key={filtro.id}>
+              <button
+                aria-expanded={openFiltroId === filtro.id}
+                className="public-shop-nav-button public-shop-filter-button"
+                data-active={Boolean(selectedSubfilters[filtro.id])}
+                onClick={() =>
+                  setOpenFiltroId((current) => (current === filtro.id ? null : filtro.id))
+                }
+                type="button"
+              >
+                <span>{filtro.nome}</span>
+                <ChevronDown size={14} aria-hidden="true" />
+              </button>
+              {openFiltroId === filtro.id ? (
+                <div className="public-filter-options">
+                  <button
+                    className="public-filter-chip"
+                    data-active={!selectedSubfilters[filtro.id]}
+                    onClick={() => {
+                      setSelectedSubfilters((current) => ({
+                        ...current,
+                        [filtro.id]: ""
+                      }));
+                      setOpenFiltroId(null);
+                    }}
+                    type="button"
+                  >
+                    Todos
+                  </button>
+                  {filtro.subfiltros.map((subfiltro) => (
+                    <button
+                      className="public-filter-chip"
+                      data-active={selectedSubfilters[filtro.id] === subfiltro.id}
+                      key={subfiltro.id}
+                      onClick={() => selectSubfilter(filtro.id, subfiltro.id)}
+                      type="button"
+                    >
+                      {subfiltro.nome}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </nav>
+
+        <a className="public-shop-search-button" href="#catalog-search">
+          <Search size={18} aria-hidden="true" />
+          <span>Pesquisar</span>
+        </a>
+      </header>
+
+      {isMobileMenuOpen ? (
+        <div
+          className="public-mobile-menu-backdrop"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <aside
+            aria-label="Filtros do catalogo"
+            className="public-mobile-menu"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="public-mobile-menu-header">
+              <strong>{catalog.conviteira.nomeMarca}</strong>
+              <button
+                aria-label="Fechar filtros"
+                onClick={() => setIsMobileMenuOpen(false)}
+                type="button"
+              >
+                <X size={20} aria-hidden="true" />
+              </button>
+            </div>
+
+            <label className="public-search-wrap">
+              <Search aria-hidden="true" className="public-search-icon" size={17} />
+              <input
+                aria-label="Buscar convite"
+                className="public-search"
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar por tema, nome ou tipo"
+                value={search}
+              />
+            </label>
+
+            <div className="public-mobile-menu-section">
+              <p>Convites</p>
+              <button
+                className="public-mobile-menu-option"
+                data-active={activeTipo === "todos"}
+                onClick={() => selectTipo("todos")}
+                type="button"
+              >
+                Todos
+              </button>
+              {catalog.tipos.map((tipo) => (
+                <button
+                  className="public-mobile-menu-option"
+                  data-active={activeTipo === tipo.id}
+                  key={tipo.id}
+                  onClick={() => selectTipo(tipo.id)}
+                  type="button"
+                >
+                  {tipo.nomePublico}
+                </button>
+              ))}
+            </div>
+
+            {filterGroups.map((filtro) => (
+              <div className="public-mobile-menu-section" key={filtro.id}>
+                <p>{filtro.nome}</p>
+                <button
+                  className="public-mobile-menu-option"
+                  data-active={!selectedSubfilters[filtro.id]}
+                  onClick={() => {
+                    setSelectedSubfilters((current) => ({
+                      ...current,
+                      [filtro.id]: ""
+                    }));
+                    setIsMobileMenuOpen(false);
+                  }}
+                  type="button"
+                >
+                  Todos
+                </button>
+                {filtro.subfiltros.map((subfiltro) => (
+                  <button
+                    className="public-mobile-menu-option"
+                    data-active={selectedSubfilters[filtro.id] === subfiltro.id}
+                    key={subfiltro.id}
+                    onClick={() => selectSubfilter(filtro.id, subfiltro.id)}
+                    type="button"
+                  >
+                    {subfiltro.nome}
+                  </button>
+                ))}
+              </div>
+            ))}
+
+            <button
+              className="public-mobile-menu-clear"
+              onClick={clearSubfilters}
+              type="button"
+            >
+              Limpar filtros
+            </button>
+          </aside>
+        </div>
+      ) : null}
+
       <section
         className="public-hero"
         data-has-custom-banner={hasCustomBanner ? "true" : undefined}
+        data-has-mobile-banner={hasMobileBanner ? "true" : undefined}
         style={
           !hasCustomBanner && heroImage
             ? ({ "--public-hero-image": `url("${heroImage}")` } as CSSProperties)
             : undefined
         }
       >
-        {catalog.conviteira.bannerUrl ? (
+        {hasCustomBanner ? (
           <>
-            <img
-              alt={`Banner ${catalog.conviteira.nomeMarca}`}
-              className="public-hero-banner"
-              src={catalog.conviteira.bannerUrl}
-            />
+            <picture className="public-hero-picture">
+              {catalog.conviteira.bannerMobileUrl ? (
+                <source
+                  media="(max-width: 768px)"
+                  srcSet={catalog.conviteira.bannerMobileUrl}
+                />
+              ) : null}
+              <img
+                alt={`Banner ${catalog.conviteira.nomeMarca}`}
+                className="public-hero-banner"
+                src={catalog.conviteira.bannerUrl || catalog.conviteira.bannerMobileUrl || ""}
+              />
+            </picture>
             {catalog.conviteira.logoUrl ? (
               <img
                 alt={`Logo ${catalog.conviteira.nomeMarca}`}
@@ -144,84 +369,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
         )}
       </section>
 
-      <nav aria-label="Tipos de convite" className="public-tabs" id="catalogo">
-        <button
-          className="public-tab"
-          data-active={activeTipo === "todos"}
-          onClick={() => setActiveTipo("todos")}
-          type="button"
-        >
-          Todos
-        </button>
-        {catalog.tipos.map((tipo) => (
-          <button
-            className="public-tab"
-            data-active={activeTipo === tipo.id}
-            key={tipo.id}
-            onClick={() => setActiveTipo(tipo.id)}
-            type="button"
-          >
-            {tipo.nomePublico}
-          </button>
-        ))}
-      </nav>
-
-      {catalog.filtros.some((filtro) => filtro.subfiltros.length) ? (
-        <section className="public-filter-panel" aria-label="Filtros do catalogo">
-          {catalog.filtros
-            .filter((filtro) => filtro.subfiltros.length)
-            .map((filtro) => (
-              <div className="public-filter-group" key={filtro.id}>
-                <button
-                  aria-expanded={openFiltroId === filtro.id}
-                  className="public-filter-toggle"
-                  data-active={Boolean(selectedSubfilters[filtro.id])}
-                  onClick={() =>
-                    setOpenFiltroId((current) =>
-                      current === filtro.id ? null : filtro.id
-                    )
-                  }
-                  type="button"
-                >
-                  <span>{filtro.nome}</span>
-                  <ChevronDown size={16} aria-hidden="true" />
-                </button>
-
-                {openFiltroId === filtro.id ? (
-                  <div className="public-filter-options">
-                    <button
-                      className="public-filter-chip"
-                      data-active={!selectedSubfilters[filtro.id]}
-                      onClick={() => {
-                        setSelectedSubfilters((current) => ({
-                          ...current,
-                          [filtro.id]: ""
-                        }));
-                        setOpenFiltroId(null);
-                      }}
-                      type="button"
-                    >
-                      Todos
-                    </button>
-                    {filtro.subfiltros.map((subfiltro) => (
-                    <button
-                      className="public-filter-chip"
-                      data-active={selectedSubfilters[filtro.id] === subfiltro.id}
-                      key={subfiltro.id}
-                      onClick={() => selectSubfilter(filtro.id, subfiltro.id)}
-                      type="button"
-                    >
-                      {subfiltro.nome}
-                    </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ))}
-        </section>
-      ) : null}
-
-      <section className="public-content">
+      <section className="public-content" id="catalogo">
         <div className="public-section-header">
           <div>
             <p className="public-section-kicker">
@@ -244,7 +392,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
           </div>
 
           {catalog.artes.length ? (
-            <label className="public-search-wrap">
+            <label className="public-search-wrap" id="catalog-search">
               <Search
                 aria-hidden="true"
                 className="public-search-icon"

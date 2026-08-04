@@ -335,6 +335,7 @@ export async function duplicateConviteiraForUser(input: {
         whatsapp: source.whatsapp,
         logoUrl: source.logoUrl,
         bannerUrl: source.bannerUrl,
+        bannerMobileUrl: source.bannerMobileUrl,
         corPrincipal: source.corPrincipal,
         corDestaque: source.corDestaque,
         fonteCatalogo: source.fonteCatalogo,
@@ -455,6 +456,7 @@ export async function updateConviteira(
     whatsapp?: string;
     logoUrl?: string | null;
     bannerUrl?: string | null;
+    bannerMobileUrl?: string | null;
     corPrincipal?: string;
     corDestaque?: string;
     fonteCatalogo?: string;
@@ -467,6 +469,7 @@ export async function updateConviteira(
     whatsapp: input.whatsapp,
     logoUrl: input.logoUrl,
     bannerUrl: input.bannerUrl,
+    bannerMobileUrl: input.bannerMobileUrl,
     corPrincipal: input.corPrincipal,
     corDestaque: input.corDestaque,
     fonteCatalogo: input.fonteCatalogo
@@ -838,6 +841,7 @@ export async function getPublicCatalog(slug: string): Promise<PublicCatalog | nu
       whatsapp: conviteira.whatsapp,
       logoUrl: conviteira.logoUrl,
       bannerUrl: conviteira.bannerUrl,
+      bannerMobileUrl: conviteira.bannerMobileUrl,
       corPrincipal: conviteira.corPrincipal,
       corDestaque: conviteira.corDestaque,
       fonteCatalogo: conviteira.fonteCatalogo

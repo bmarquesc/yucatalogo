@@ -15,6 +15,7 @@ type ConviteiraPayload = {
   whatsapp?: string;
   logoUrl?: string | null;
   bannerUrl?: string | null;
+  bannerMobileUrl?: string | null;
   corPrincipal?: string;
   corDestaque?: string;
   fonteCatalogo?: string;
@@ -49,6 +50,7 @@ export async function PUT(request: Request) {
       whatsapp: body.whatsapp ? sanitizeWhatsApp(body.whatsapp) : undefined,
       logoUrl: body.logoUrl ?? undefined,
       bannerUrl: body.bannerUrl ?? undefined,
+      bannerMobileUrl: body.bannerMobileUrl ?? undefined,
       corPrincipal: body.corPrincipal,
       corDestaque: body.corDestaque,
       fonteCatalogo: body.fonteCatalogo

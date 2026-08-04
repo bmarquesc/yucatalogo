@@ -22,6 +22,7 @@ export const conviteiras = pgTable("conviteiras", {
   whatsapp: text("whatsapp").notNull(),
   logoUrl: text("logo_url"),
   bannerUrl: text("banner_url"),
+  bannerMobileUrl: text("banner_mobile_url"),
   corPrincipal: text("cor_principal").default("#0D0D0D"),
   corDestaque: text("cor_destaque").default("#C9A96E"),
   fonteCatalogo: text("fonte_catalogo").default("editorial"),

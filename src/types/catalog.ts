@@ -86,6 +86,7 @@ export type PublicCatalog = {
     whatsapp: string;
     logoUrl: string | null;
     bannerUrl: string | null;
+    bannerMobileUrl: string | null;
     corPrincipal: string | null;
     corDestaque: string | null;
     fonteCatalogo: string | null;

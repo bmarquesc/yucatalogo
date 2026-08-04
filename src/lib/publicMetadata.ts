@@ -33,7 +33,11 @@ export function buildPublicCatalogMetadata(catalog: PublicCatalog | null): Metad
   const title = catalog.conviteira.nomeMarca;
   const description =
     catalog.conviteira.bio || `Catalogo digital ${catalog.conviteira.nomeMarca}`;
-  const images = publicImages(catalog.conviteira.bannerUrl, catalog.conviteira.logoUrl);
+  const images = publicImages(
+    catalog.conviteira.bannerMobileUrl,
+    catalog.conviteira.bannerUrl,
+    catalog.conviteira.logoUrl
+  );
 
   return {
     title,
@@ -72,6 +76,7 @@ export function buildPublicInvitationMetadata(
   const cover = arte?.midias.find((midia) => midia.tipo === "imagem") || arte?.midias[0];
   const images = publicImages(
     cover?.url,
+    catalog.conviteira.bannerMobileUrl,
     catalog.conviteira.bannerUrl,
     catalog.conviteira.logoUrl
   );

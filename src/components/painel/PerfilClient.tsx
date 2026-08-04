@@ -20,6 +20,7 @@ type ConviteiraForm = {
   whatsapp: string;
   logoUrl: string;
   bannerUrl: string;
+  bannerMobileUrl: string;
   corPrincipal: string;
   corDestaque: string;
   fonteCatalogo: string;
@@ -32,6 +33,7 @@ const emptyForm: ConviteiraForm = {
   whatsapp: "",
   logoUrl: "",
   bannerUrl: "",
+  bannerMobileUrl: "",
   corPrincipal: "#0D0D0D",
   corDestaque: "#C9A96E",
   fonteCatalogo: DEFAULT_CATALOG_FONT
@@ -69,6 +71,7 @@ export function PerfilClient() {
       whatsapp: data.conviteira.whatsapp || "",
       logoUrl: data.conviteira.logoUrl || "",
       bannerUrl: data.conviteira.bannerUrl || "",
+      bannerMobileUrl: data.conviteira.bannerMobileUrl || "",
       corPrincipal: data.conviteira.corPrincipal || "#0D0D0D",
       corDestaque: data.conviteira.corDestaque || "#C9A96E",
       fonteCatalogo: data.conviteira.fonteCatalogo || DEFAULT_CATALOG_FONT
@@ -82,7 +85,10 @@ export function PerfilClient() {
     void load();
   }, []);
 
-  async function uploadProfileFile(file: File, field: "logoUrl" | "bannerUrl") {
+  async function uploadProfileFile(
+    file: File,
+    field: "logoUrl" | "bannerUrl" | "bannerMobileUrl"
+  ) {
     setUploading(field);
     const formData = new FormData();
     formData.append("file", file);
@@ -293,6 +299,18 @@ export function PerfilClient() {
                 if (files[0]) void uploadProfileFile(files[0], "bannerUrl");
               }}
             />
+            <UploadZone
+              accept="image/*"
+              hint="Para celular: 800 x 1300 px"
+              label={
+                uploading === "bannerMobileUrl"
+                  ? "Enviando banner mobile"
+                  : "Enviar banner mobile"
+              }
+              onFiles={(files) => {
+                if (files[0]) void uploadProfileFile(files[0], "bannerMobileUrl");
+              }}
+            />
           </div>
 
           <button className="button" disabled={saving} type="submit">
@@ -336,6 +354,66 @@ export function PerfilClient() {
                   Banner 1080 x 515 px
                 </span>
               )}
+            </div>
+            <div
+              style={{
+                background: form.corDestaque,
+                borderTop: "1px solid var(--rule)",
+                display: "grid",
+                gridTemplateColumns: "minmax(120px, 180px) minmax(0, 1fr)",
+                gap: 16,
+                padding: 18
+              }}
+            >
+              <div
+                style={{
+                  aspectRatio: "400 / 650",
+                  background: "#fff",
+                  borderRadius: 8,
+                  overflow: "hidden"
+                }}
+              >
+                {form.bannerMobileUrl ? (
+                  <img
+                    alt=""
+                    src={form.bannerMobileUrl}
+                    style={{ height: "100%", objectFit: "cover", width: "100%" }}
+                  />
+                ) : (
+                  <span
+                    style={{
+                      color: form.corPrincipal,
+                      display: "grid",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      height: "100%",
+                      placeItems: "center",
+                      textAlign: "center"
+                    }}
+                  >
+                    Banner mobile
+                    <br />
+                    800 x 1300 px
+                  </span>
+                )}
+              </div>
+              <div style={{ alignSelf: "center" }}>
+                <p
+                  style={{
+                    color: "#fff",
+                    fontSize: 12,
+                    fontWeight: 900,
+                    letterSpacing: "0.08em",
+                    margin: 0,
+                    textTransform: "uppercase"
+                  }}
+                >
+                  Preview celular
+                </p>
+                <p style={{ color: "#fff", fontWeight: 700, margin: "8px 0 0" }}>
+                  Use uma arte vertical para o banner ocupar melhor a tela do celular.
+                </p>
+              </div>
             </div>
             <div style={{ display: "flex", gap: 14, padding: 18 }}>
               <div

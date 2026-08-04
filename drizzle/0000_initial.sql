@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS conviteiras (
   whatsapp TEXT NOT NULL,
   logo_url TEXT,
   banner_url TEXT,
+  banner_mobile_url TEXT,
   cor_principal TEXT DEFAULT '#0D0D0D',
   cor_destaque TEXT DEFAULT '#C9A96E',
   fonte_catalogo TEXT DEFAULT 'editorial',

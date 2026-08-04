@@ -17,6 +17,7 @@ export async function migrateDatabase() {
       whatsapp TEXT NOT NULL,
       logo_url TEXT,
       banner_url TEXT,
+      banner_mobile_url TEXT,
       cor_principal TEXT DEFAULT '#0D0D0D',
       cor_destaque TEXT DEFAULT '#C9A96E',
       fonte_catalogo TEXT DEFAULT 'editorial',
@@ -38,6 +39,11 @@ export async function migrateDatabase() {
   await db.execute(sql`
     ALTER TABLE conviteiras
     ADD COLUMN IF NOT EXISTS fonte_catalogo TEXT DEFAULT 'editorial'
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE conviteiras
+    ADD COLUMN IF NOT EXISTS banner_mobile_url TEXT
   `);
 
   await db.execute(sql`
