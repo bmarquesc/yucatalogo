@@ -15,6 +15,7 @@ const isProtectedRoute = createRouteMatcher([
   "/api/caixa(.*)",
   "/api/midias(.*)",
   "/api/tipos(.*)",
+  "/api/filtros(.*)",
   "/api/campos(.*)"
 ]);
 
@@ -79,6 +80,7 @@ export const config = {
     "/api/caixa/:path*",
     "/api/midias/:path*",
     "/api/tipos/:path*",
+    "/api/filtros/:path*",
     "/api/campos/:path*",
     "/api/public/:path*",
     "/api/webhooks/:path*"

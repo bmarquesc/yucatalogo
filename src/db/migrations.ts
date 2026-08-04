@@ -119,6 +119,34 @@ export async function migrateDatabase() {
   `);
 
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS filtros_catalogo (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      conviteira_id UUID NOT NULL REFERENCES conviteiras(id) ON DELETE CASCADE,
+      nome TEXT NOT NULL,
+      ordem INT DEFAULT 0,
+      criado_em TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS subfiltros_catalogo (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      filtro_id UUID NOT NULL REFERENCES filtros_catalogo(id) ON DELETE CASCADE,
+      nome TEXT NOT NULL,
+      ordem INT DEFAULT 0,
+      criado_em TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS arte_subfiltros (
+      arte_id UUID NOT NULL REFERENCES artes(id) ON DELETE CASCADE,
+      subfiltro_id UUID NOT NULL REFERENCES subfiltros_catalogo(id) ON DELETE CASCADE,
+      PRIMARY KEY (arte_id, subfiltro_id)
+    )
+  `);
+
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS campos_pedido (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       conviteira_id UUID NOT NULL REFERENCES conviteiras(id) ON DELETE CASCADE,

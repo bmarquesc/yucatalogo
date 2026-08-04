@@ -19,6 +19,20 @@ export type TipoConviteInput = {
   ordem: number;
 };
 
+export type CatalogSubfiltro = {
+  id: string;
+  filtroId: string;
+  nome: string;
+  ordem: number | null;
+};
+
+export type CatalogFiltro = {
+  id: string;
+  nome: string;
+  ordem: number | null;
+  subfiltros: CatalogSubfiltro[];
+};
+
 export type CatalogMedia = {
   id: string;
   tipo: TipoMidia;
@@ -50,6 +64,7 @@ export type CatalogArte = {
   ordem: number | null;
   ativo: boolean | null;
   tipo?: CatalogTipo | null;
+  subfiltros: CatalogSubfiltro[];
   midias: CatalogMedia[];
 };
 
@@ -76,6 +91,7 @@ export type PublicCatalog = {
     fonteCatalogo: string | null;
   };
   tipos: CatalogTipo[];
+  filtros: CatalogFiltro[];
   artes: Omit<CatalogArte, "canvaUrl">[];
   campos: CatalogCampo[];
 };

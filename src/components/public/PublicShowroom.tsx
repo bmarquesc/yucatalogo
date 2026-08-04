@@ -39,8 +39,7 @@ import type { CatalogCampo, PublicCatalog } from "@/types/catalog";
 export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
   const [activeTipo, setActiveTipo] = useState("todos");
   const [search, setSearch] = useState("");
-  const [selectedArte, setSelectedArte] =
-    useState<PublicCatalog["artes"][number] | null>(null);
+  const [selectedSubfilters, setSelectedSubfilters] = useState<Record<string, string>>({});
   const featuredArte = catalog.artes.find((arte) => arte.midias.length);
   const featuredMedia =
     featuredArte?.midias.find((media) => media.tipo === "imagem") ??
@@ -54,21 +53,35 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
       activeTipo === "todos"
         ? catalog.artes
         : catalog.artes.filter((arte) => arte.tipoId === activeTipo);
+    const activeSubfilterIds = Object.values(selectedSubfilters).filter(Boolean);
+    const bySubfilters = activeSubfilterIds.length
+      ? byTipo.filter((arte) =>
+          activeSubfilterIds.every((subfilterId) =>
+            arte.subfiltros.some((subfiltro) => subfiltro.id === subfilterId)
+          )
+        )
+      : byTipo;
 
     const term = normalizeCatalogSearch(search);
 
     if (!term) {
-      return byTipo;
+      return bySubfilters;
     }
 
-    return byTipo.filter((arte) =>
+    return bySubfilters.filter((arte) =>
       normalizeCatalogSearch(
-        [arte.nome, arte.tema, arte.tipo?.nomePublico, arte.tipo?.nome]
+        [
+          arte.nome,
+          arte.tema,
+          arte.tipo?.nomePublico,
+          arte.tipo?.nome,
+          ...arte.subfiltros.map((subfiltro) => subfiltro.nome)
+        ]
           .filter(Boolean)
           .join(" ")
       ).includes(term)
     );
-  }, [activeTipo, catalog.artes, search]);
+  }, [activeTipo, catalog.artes, search, selectedSubfilters]);
 
   const selectedFont = getCatalogFontOption(catalog.conviteira.fonteCatalogo);
   const shellStyle = {
@@ -77,6 +90,13 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
     "--catalog-font-body": selectedFont.bodyFamily,
     "--catalog-font-display": selectedFont.displayFamily
   } as CSSProperties;
+
+  function selectSubfilter(filtroId: string, subfiltroId: string) {
+    setSelectedSubfilters((current) => ({
+      ...current,
+      [filtroId]: current[filtroId] === subfiltroId ? "" : subfiltroId
+    }));
+  }
 
   return (
     <main className="public-shell" style={shellStyle}>
@@ -179,6 +199,44 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
         ))}
       </nav>
 
+      {catalog.filtros.some((filtro) => filtro.subfiltros.length) ? (
+        <section className="public-filter-panel" aria-label="Filtros do catalogo">
+          {catalog.filtros
+            .filter((filtro) => filtro.subfiltros.length)
+            .map((filtro) => (
+              <div className="public-filter-group" key={filtro.id}>
+                <span>{filtro.nome}</span>
+                <div className="public-filter-options">
+                  <button
+                    className="public-filter-chip"
+                    data-active={!selectedSubfilters[filtro.id]}
+                    onClick={() =>
+                      setSelectedSubfilters((current) => ({
+                        ...current,
+                        [filtro.id]: ""
+                      }))
+                    }
+                    type="button"
+                  >
+                    Todos
+                  </button>
+                  {filtro.subfiltros.map((subfiltro) => (
+                    <button
+                      className="public-filter-chip"
+                      data-active={selectedSubfilters[filtro.id] === subfiltro.id}
+                      key={subfiltro.id}
+                      onClick={() => selectSubfilter(filtro.id, subfiltro.id)}
+                      type="button"
+                    >
+                      {subfiltro.nome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+        </section>
+      ) : null}
+
       <section className="public-content">
         <div className="public-section-header">
           <div>
@@ -229,11 +287,10 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
 
               return (
                 <article className="public-art-card" key={arte.id}>
-                  <button
+                  <a
                     aria-label={arte.nome}
                     className="public-art-card-button"
-                    onClick={() => setSelectedArte(arte)}
-                    type="button"
+                    href={`/${catalog.conviteira.slug}/convite/${arte.id}`}
                   >
                     <span className="public-art-media">
                       {cover ? (
@@ -258,7 +315,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
                       ) : null}
                       <span className="public-art-cta">Quero esse convite</span>
                     </span>
-                  </button>
+                  </a>
                 </article>
               );
             })}
@@ -270,14 +327,349 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
         )}
       </section>
 
-      {selectedArte ? (
-        <ShowroomModal
-          arte={selectedArte}
-          campos={catalog.campos}
-          nomeMarca={catalog.conviteira.nomeMarca}
-          onClose={() => setSelectedArte(null)}
-          slug={catalog.conviteira.slug}
-          whatsapp={catalog.conviteira.whatsapp}
+    </main>
+  );
+}
+
+export function PublicInvitationDetail({
+  arte,
+  catalog
+}: {
+  arte: PublicCatalog["artes"][number];
+  catalog: PublicCatalog;
+}) {
+  const [slide, setSlide] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [expandedSlide, setExpandedSlide] = useState<number | null>(null);
+  const [orderOpen, setOrderOpen] = useState(false);
+  const [orderError, setOrderError] = useState("");
+  const [sendingOrder, setSendingOrder] = useState(false);
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [servicosAdicionais, setServicosAdicionais] = useState<OrderServiceId[]>([]);
+  const slides = arte.midias;
+  const currentSlide = slides[slide];
+  const orderFields = useMemo(
+    () => buildPublicOrderFields(catalog.campos),
+    [catalog.campos]
+  );
+  const selectedFont = getCatalogFontOption(catalog.conviteira.fonteCatalogo);
+  const priceLabel = formatCatalogPrice(arte.valor, arte.valorAPartir);
+  const shellStyle = {
+    "--brand-primary": catalog.conviteira.corPrincipal || "#0D0D0D",
+    "--brand-accent": catalog.conviteira.corDestaque || "#C9A96E",
+    "--catalog-font-body": selectedFont.bodyFamily,
+    "--catalog-font-display": selectedFont.displayFamily
+  } as CSSProperties;
+
+  useEffect(() => {
+    setSlide(0);
+    setExpandedSlide(null);
+    setOrderOpen(false);
+    setOrderError("");
+    setSendingOrder(false);
+    setValues({});
+    setServicosAdicionais([]);
+  }, [arte.id]);
+
+  function move(direction: -1 | 1) {
+    setSlide((current) => {
+      if (!slides.length) {
+        return 0;
+      }
+
+      return (current + direction + slides.length) % slides.length;
+    });
+  }
+
+  function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
+    if (touchStart === null) {
+      return;
+    }
+
+    const delta = event.changedTouches[0].clientX - touchStart;
+    if (Math.abs(delta) > 40) {
+      move(delta > 0 ? -1 : 1);
+    }
+    setTouchStart(null);
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setOrderError("");
+    setSendingOrder(true);
+
+    const message = buildPublicOrderMessage({
+      arteNome: arte.nome,
+      fields: orderFields,
+      nomeMarca: catalog.conviteira.nomeMarca,
+      servicosAdicionais,
+      tipoNome: arte.tipo?.nomePublico,
+      values
+    });
+    const whatsappTarget = window.open("", "_blank");
+
+    try {
+      const response = await fetch(
+        `/api/public/${encodeURIComponent(catalog.conviteira.slug)}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            arteId: arte.id,
+            servicosAdicionais,
+            values
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        whatsappTarget?.close();
+        setOrderError(data.error || "Nao foi possivel enviar o pedido.");
+        return;
+      }
+
+      const whatsappUrl = buildWhatsAppUrl(catalog.conviteira.whatsapp, message);
+
+      if (whatsappTarget) {
+        whatsappTarget.location.href = whatsappUrl;
+      } else {
+        window.location.href = whatsappUrl;
+      }
+
+      setValues({});
+      setServicosAdicionais([]);
+      setOrderOpen(false);
+    } catch {
+      whatsappTarget?.close();
+      setOrderError("Nao foi possivel enviar o pedido. Tente novamente.");
+    } finally {
+      setSendingOrder(false);
+    }
+  }
+
+  function toggleServicoAdicional(serviceId: OrderServiceId, selected: boolean) {
+    setServicosAdicionais((current) =>
+      selected
+        ? Array.from(new Set([...current, serviceId]))
+        : current.filter((item) => item !== serviceId)
+    );
+  }
+
+  return (
+    <main className="public-shell" style={shellStyle}>
+      <div className="public-announcement">
+        Escolha seu convite pelo WhatsApp.
+      </div>
+
+      <header className="public-shop-header">
+        <a className="public-shop-brand" href={`/${catalog.conviteira.slug}`}>
+          {catalog.conviteira.logoUrl ? (
+            <img
+              alt=""
+              className="public-logo"
+              src={catalog.conviteira.logoUrl}
+            />
+          ) : (
+            <span className="public-logo-fallback">
+              {catalog.conviteira.nomeMarca.charAt(0)}
+            </span>
+          )}
+          <span>{catalog.conviteira.nomeMarca}</span>
+        </a>
+
+        <nav className="public-shop-nav" aria-label="Navegacao do catalogo">
+          <a href={`/${catalog.conviteira.slug}#catalogo`}>Modelos</a>
+          <a href={`/${catalog.conviteira.slug}#colecoes`}>Colecoes</a>
+          <a
+            href={`https://wa.me/${catalog.conviteira.whatsapp}`}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Contato
+          </a>
+        </nav>
+
+        <div className="public-shop-actions" aria-hidden="true">
+          <Search size={19} />
+          <ShoppingBag size={19} />
+          <Menu size={20} />
+        </div>
+      </header>
+
+      <section className="public-product-page">
+        <a className="public-back-link" href={`/${catalog.conviteira.slug}#catalogo`}>
+          Voltar ao catalogo
+        </a>
+
+        <section className="public-product-layout">
+          <div className="public-product-gallery">
+            <div
+              className="public-product-stage"
+              onTouchEnd={handleTouchEnd}
+              onTouchStart={(event) => setTouchStart(event.touches[0].clientX)}
+            >
+              {currentSlide ? (
+                <ShowroomMedia
+                  contained
+                  label={arte.nome}
+                  media={currentSlide}
+                  onOpen={
+                    currentSlide.tipo === "imagem"
+                      ? () => setExpandedSlide(slide)
+                      : undefined
+                  }
+                />
+              ) : (
+                <ShowroomPlaceholder contained />
+              )}
+
+              {currentSlide ? (
+                <button
+                  aria-label="Expandir midia"
+                  className="showroom-media-expand"
+                  onClick={() => setExpandedSlide(slide)}
+                  type="button"
+                >
+                  <Maximize2 size={18} aria-hidden="true" />
+                </button>
+              ) : null}
+
+              {slides.length > 1 ? (
+                <>
+                  <button
+                    aria-label="Slide anterior"
+                    className="carousel-button carousel-button-left"
+                    onClick={() => move(-1)}
+                    type="button"
+                  >
+                    <ChevronLeft size={22} aria-hidden="true" />
+                  </button>
+                  <button
+                    aria-label="Proximo slide"
+                    className="carousel-button carousel-button-right"
+                    onClick={() => move(1)}
+                    type="button"
+                  >
+                    <ChevronRight size={22} aria-hidden="true" />
+                  </button>
+                </>
+              ) : null}
+            </div>
+
+            {slides.length > 1 ? (
+              <div className="public-product-thumbs">
+                {slides.map((media, index) => (
+                  <button
+                    aria-label={`Ver midia ${index + 1}`}
+                    className="public-product-thumb"
+                    data-active={index === slide}
+                    key={media.id}
+                    onClick={() => setSlide(index)}
+                    type="button"
+                  >
+                    <ShowroomMedia
+                      contained
+                      controls={false}
+                      label={arte.nome}
+                      media={media}
+                    />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="public-product-info">
+            <p className="showroom-kicker">
+              {arte.tipo?.nomePublico || "Convite digital"}
+            </p>
+            <h1 className="font-display public-product-title">{arte.nome}</h1>
+            {priceLabel ? <p className="showroom-price">{priceLabel}</p> : null}
+            <p className="public-product-description">
+              {arte.tipo?.descricaoPublica ||
+                "Modelo digital personalizado com as informacoes do evento, pronto para compartilhar com os convidados."}
+            </p>
+
+            <dl className="public-product-meta">
+              {arte.tipo?.nomePublico ? (
+                <div>
+                  <dt>Tipo</dt>
+                  <dd>{arte.tipo.nomePublico}</dd>
+                </div>
+              ) : null}
+              {arte.tema ? (
+                <div>
+                  <dt>Tema</dt>
+                  <dd>{arte.tema}</dd>
+                </div>
+              ) : null}
+              {arte.subfiltros.length ? (
+                <div>
+                  <dt>Filtros</dt>
+                  <dd>{arte.subfiltros.map((subfiltro) => subfiltro.nome).join(", ")}</dd>
+                </div>
+              ) : null}
+              <div>
+                <dt>Entrega</dt>
+                <dd>Digital, pronta para enviar pelo WhatsApp</dd>
+              </div>
+            </dl>
+
+            <div className="showroom-actions">
+              {arte.linkPublicado ? (
+                <a
+                  className={publicButtonClass(false)}
+                  href={arte.linkPublicado}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <ExternalLink size={17} aria-hidden="true" />
+                  Abrir convite
+                </a>
+              ) : null}
+              <button
+                className={publicButtonClass(true)}
+                onClick={() => {
+                  setOrderError("");
+                  setOrderOpen(true);
+                }}
+                type="button"
+              >
+                <MessageCircle size={17} aria-hidden="true" />
+                Quero esse convite
+              </button>
+            </div>
+          </aside>
+        </section>
+      </section>
+
+      {orderOpen ? (
+        <PublicOrderPopup
+          error={orderError}
+          fields={orderFields}
+          onChange={(id, value) =>
+            setValues((current) => ({ ...current, [id]: value }))
+          }
+          onClose={() => {
+            if (!sendingOrder) {
+              setOrderOpen(false);
+            }
+          }}
+          onSubmit={submit}
+          sending={sendingOrder}
+          servicosAdicionais={servicosAdicionais}
+          onServicoChange={toggleServicoAdicional}
+          values={values}
+        />
+      ) : null}
+
+      {expandedSlide !== null && slides.length ? (
+        <ExpandedShowroomMedia
+          initialSlide={expandedSlide}
+          label={arte.nome}
+          onClose={() => setExpandedSlide(null)}
+          slides={slides}
         />
       ) : null}
     </main>
@@ -824,11 +1216,13 @@ function PublicField({
 
 function ShowroomMedia({
   contained = false,
+  controls,
   media,
   label,
   onOpen
 }: {
   contained?: boolean;
+  controls?: boolean;
   media: PublicCatalog["artes"][number]["midias"][number];
   label: string;
   onOpen?: () => void;
@@ -841,7 +1235,14 @@ function ShowroomMedia({
   } as CSSProperties;
 
   if (media.tipo === "video") {
-    return <video controls={contained} playsInline src={media.url} style={style} />;
+    return (
+      <video
+        controls={controls ?? contained}
+        playsInline
+        src={media.url}
+        style={style}
+      />
+    );
   }
 
   return <img alt={label} onClick={onOpen} src={media.url} style={style} />;

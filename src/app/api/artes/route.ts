@@ -1,8 +1,15 @@
+import { and, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { getDb } from "@/db";
 import { getAdminArtes } from "@/db/queries";
-import { arteMidias, artes } from "@/db/schema";
+import {
+  arteMidias,
+  arteSubfiltros,
+  artes,
+  filtrosCatalogo,
+  subfiltrosCatalogo
+} from "@/db/schema";
 import { handleRouteError, jsonError, readJson } from "@/lib/api";
 import { requireConviteira } from "@/lib/auth";
 import type { TipoMidia } from "@/types/catalog";
@@ -19,6 +26,7 @@ type ArtePayload = {
   valor?: number | null;
   valorAPartir?: boolean | null;
   ordem?: number;
+  subfiltroIds?: string[] | null;
   midias?: Array<{
     tipo: TipoMidia;
     url: string;
@@ -59,6 +67,15 @@ export async function POST(request: Request) {
       return jsonError("Cada convite pode ter no máximo 1 vídeo.");
     }
 
+    const subfiltroIds = await resolveSubfiltroIds(
+      conviteira.id,
+      body.subfiltroIds
+    );
+
+    if (!subfiltroIds) {
+      return jsonError("Subfiltro nao encontrado.", 404);
+    }
+
     const db = getDb();
     const [created] = await db
       .insert(artes)
@@ -88,10 +105,52 @@ export async function POST(request: Request) {
       );
     }
 
+    if (subfiltroIds.length) {
+      await db.insert(arteSubfiltros).values(
+        subfiltroIds.map((subfiltroId) => ({
+          arteId: created.id,
+          subfiltroId
+        }))
+      );
+    }
+
     return NextResponse.json({ arte: created }, { status: 201 });
   } catch (error) {
     return handleRouteError(error);
   }
+}
+
+async function resolveSubfiltroIds(
+  conviteiraId: string,
+  value: string[] | null | undefined
+) {
+  const requested = Array.from(
+    new Set((value ?? []).filter((id) => typeof id === "string" && id.trim()))
+  );
+
+  if (!requested.length) {
+    return [];
+  }
+
+  const rows = await getDb()
+    .select({ id: subfiltrosCatalogo.id })
+    .from(subfiltrosCatalogo)
+    .innerJoin(
+      filtrosCatalogo,
+      eq(subfiltrosCatalogo.filtroId, filtrosCatalogo.id)
+    )
+    .where(
+      and(
+        eq(filtrosCatalogo.conviteiraId, conviteiraId),
+        inArray(subfiltrosCatalogo.id, requested)
+      )
+    );
+
+  if (rows.length !== requested.length) {
+    return null;
+  }
+
+  return rows.map((row) => row.id);
 }
 
 function sanitizeOptionalMoney(value: unknown) {

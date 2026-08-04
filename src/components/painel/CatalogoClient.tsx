@@ -16,7 +16,13 @@ import { FormEvent, useEffect, useState } from "react";
 import { Modal } from "@/components/painel/Modal";
 import { UploadZone } from "@/components/painel/UploadZone";
 import { useToast } from "@/components/painel/ToastProvider";
-import type { CatalogArte, CatalogMedia, CatalogTipo, TipoMidia } from "@/types/catalog";
+import type {
+  CatalogArte,
+  CatalogFiltro,
+  CatalogMedia,
+  CatalogTipo,
+  TipoMidia
+} from "@/types/catalog";
 
 type UploadResult = {
   url: string;
@@ -35,6 +41,7 @@ type ArteForm = {
   valorAPartir: boolean;
   canvaUrl: string;
   linkPublicado: string;
+  subfiltroIds: string[];
 };
 
 const MAX_IMAGES = 10;
@@ -46,13 +53,15 @@ const emptyForm: ArteForm = {
   valor: "",
   valorAPartir: false,
   canvaUrl: "",
-  linkPublicado: ""
+  linkPublicado: "",
+  subfiltroIds: []
 };
 
 export function CatalogoClient() {
   const notify = useToast();
   const [artes, setArtes] = useState<CatalogArte[]>([]);
   const [tipos, setTipos] = useState<CatalogTipo[]>([]);
+  const [filtros, setFiltros] = useState<CatalogFiltro[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingArte, setEditingArte] = useState<CatalogArte | null>(null);
@@ -69,12 +78,13 @@ export function CatalogoClient() {
 
   async function load() {
     setLoading(true);
-    const [artesResponse, tiposResponse] = await Promise.all([
+    const [artesResponse, tiposResponse, filtrosResponse] = await Promise.all([
       fetch("/api/artes"),
-      fetch("/api/tipos")
+      fetch("/api/tipos"),
+      fetch("/api/filtros")
     ]);
 
-    if (!artesResponse.ok || !tiposResponse.ok) {
+    if (!artesResponse.ok || !tiposResponse.ok || !filtrosResponse.ok) {
       notify("Não foi possível carregar o catálogo.", "error");
       setLoading(false);
       return;
@@ -82,8 +92,10 @@ export function CatalogoClient() {
 
     const artesData = (await artesResponse.json()) as { artes: CatalogArte[] };
     const tiposData = (await tiposResponse.json()) as { tipos: CatalogTipo[] };
+    const filtrosData = (await filtrosResponse.json()) as { filtros: CatalogFiltro[] };
     setArtes(artesData.artes);
     setTipos(tiposData.tipos);
+    setFiltros(filtrosData.filtros);
     setLoading(false);
   }
 
@@ -108,7 +120,8 @@ export function CatalogoClient() {
       valor: centsToOptionalInput(arte.valor),
       valorAPartir: Boolean(arte.valorAPartir),
       canvaUrl: arte.canvaUrl || "",
-      linkPublicado: arte.linkPublicado || ""
+      linkPublicado: arte.linkPublicado || "",
+      subfiltroIds: arte.subfiltros.map((subfiltro) => subfiltro.id)
     });
     setImageFiles([]);
     setVideoFile(null);
@@ -121,6 +134,15 @@ export function CatalogoClient() {
     setForm(emptyForm);
     setImageFiles([]);
     setVideoFile(null);
+  }
+
+  function toggleSubfiltro(subfiltroId: string, selected: boolean) {
+    setForm((current) => ({
+      ...current,
+      subfiltroIds: selected
+        ? Array.from(new Set([...current.subfiltroIds, subfiltroId]))
+        : current.subfiltroIds.filter((id) => id !== subfiltroId)
+    }));
   }
 
   function addImageFiles(files: File[]) {
@@ -321,6 +343,7 @@ export function CatalogoClient() {
         valorAPartir: form.valorAPartir,
         canvaUrl: form.canvaUrl,
         linkPublicado: form.linkPublicado,
+        subfiltroIds: form.subfiltroIds,
         midias: [...imageUploads, ...videoUploads]
       })
     });
@@ -342,7 +365,8 @@ export function CatalogoClient() {
         valor: moneyToOptionalCents(form.valor),
         valorAPartir: form.valorAPartir,
         canvaUrl: form.canvaUrl,
-        linkPublicado: form.linkPublicado
+        linkPublicado: form.linkPublicado,
+        subfiltroIds: form.subfiltroIds
       })
     });
 
@@ -514,6 +538,11 @@ export function CatalogoClient() {
                     <span className="status-pill">
                       {hasVideo ? "1 vídeo" : "sem vídeo"}
                     </span>
+                    {arte.subfiltros.map((subfiltro) => (
+                      <span className="status-pill" key={subfiltro.id}>
+                        {subfiltro.nome}
+                      </span>
+                    ))}
                     {!arte.ativo ? <span className="status-pill">Oculto</span> : null}
                   </div>
                 </div>
@@ -631,6 +660,42 @@ export function CatalogoClient() {
                 value={form.tema}
               />
             </label>
+
+            {filtros.length ? (
+              <section className="catalog-filter-picker">
+                <div>
+                  <p className="form-label">Filtros personalizados</p>
+                  <p style={{ color: "var(--mid)", margin: "6px 0 0" }}>
+                    Marque os subfiltros onde esse convite deve aparecer.
+                  </p>
+                </div>
+                {filtros.map((filtro) => (
+                  <div className="catalog-filter-group" key={filtro.id}>
+                    <strong>{filtro.nome}</strong>
+                    {filtro.subfiltros.length ? (
+                      <div className="catalog-subfilter-list">
+                        {filtro.subfiltros.map((subfiltro) => (
+                          <label className="catalog-subfilter-option" key={subfiltro.id}>
+                            <input
+                              checked={form.subfiltroIds.includes(subfiltro.id)}
+                              onChange={(event) =>
+                                toggleSubfiltro(subfiltro.id, event.target.checked)
+                              }
+                              type="checkbox"
+                            />
+                            <span>{subfiltro.nome}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="catalog-filter-empty">
+                        Crie subfiltros na pagina Filtros.
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </section>
+            ) : null}
 
             <div
               style={{

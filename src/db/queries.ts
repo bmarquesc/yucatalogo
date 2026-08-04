@@ -4,11 +4,14 @@ import { getDb } from "@/db";
 import {
   acessosKiwify,
   arteMidias,
+  arteSubfiltros,
   artes,
   camposPedido,
   conviteiras,
+  filtrosCatalogo,
   gastosCaixa,
   pedidos,
+  subfiltrosCatalogo,
   tiposConvite
 } from "@/db/schema";
 import { DEFAULT_CAMPOS_PEDIDO, DEFAULT_TIPOS_CONVITE } from "@/lib/defaults";
@@ -16,7 +19,9 @@ import { slugify } from "@/lib/slug";
 import type {
   CatalogArte,
   CatalogCampo,
+  CatalogFiltro,
   CatalogMedia,
+  CatalogSubfiltro,
   CatalogTipo,
   PublicCatalog
 } from "@/types/catalog";
@@ -243,9 +248,14 @@ export async function duplicateConviteiraForUser(input: {
   }
 
   const db = getDb();
-  const [tipoRows, campoRows, arteRows] = await Promise.all([
+  const [tipoRows, campoRows, filtroRows, arteRows] = await Promise.all([
     getTiposForConviteira(source.id),
     getCamposForConviteira(source.id),
+    db
+      .select()
+      .from(filtrosCatalogo)
+      .where(eq(filtrosCatalogo.conviteiraId, source.id))
+      .orderBy(asc(filtrosCatalogo.ordem), asc(filtrosCatalogo.nome)),
     db
       .select()
       .from(artes)
@@ -264,12 +274,47 @@ export async function duplicateConviteiraForUser(input: {
         )
         .orderBy(asc(arteMidias.ordem))
     : [];
+  const subfiltroRows = filtroRows.length
+    ? await db
+        .select()
+        .from(subfiltrosCatalogo)
+        .where(
+          inArray(
+            subfiltrosCatalogo.filtroId,
+            filtroRows.map((filtro) => filtro.id)
+          )
+        )
+        .orderBy(asc(subfiltrosCatalogo.ordem), asc(subfiltrosCatalogo.nome))
+    : [];
+  const arteSubfiltroRows = arteRows.length
+    ? await db
+        .select()
+        .from(arteSubfiltros)
+        .where(
+          inArray(
+            arteSubfiltros.arteId,
+            arteRows.map((arte) => arte.id)
+          )
+        )
+    : [];
   const mediaByArte = mediaRows.reduce((map, media) => {
     const list = map.get(media.arteId) ?? [];
     list.push(media);
     map.set(media.arteId, list);
     return map;
   }, new Map<string, typeof mediaRows>());
+  const subfiltrosByFiltro = subfiltroRows.reduce((map, subfiltro) => {
+    const list = map.get(subfiltro.filtroId) ?? [];
+    list.push(subfiltro);
+    map.set(subfiltro.filtroId, list);
+    return map;
+  }, new Map<string, typeof subfiltroRows>());
+  const subfiltrosByArte = arteSubfiltroRows.reduce((map, item) => {
+    const list = map.get(item.arteId) ?? [];
+    list.push(item.subfiltroId);
+    map.set(item.arteId, list);
+    return map;
+  }, new Map<string, string[]>());
   const nomeMarca = input.nomeMarca?.trim() || `${source.nomeMarca} cópia`;
   const slug = await createUniqueSlug(nomeMarca);
 
@@ -306,6 +351,31 @@ export async function duplicateConviteiraForUser(input: {
         })
         .returning();
       tipoIdMap.set(tipo.id, createdTipo.id);
+    }
+
+    const subfiltroIdMap = new Map<string, string>();
+    for (const filtro of filtroRows) {
+      const [createdFiltro] = await tx
+        .insert(filtrosCatalogo)
+        .values({
+          conviteiraId: copy.id,
+          nome: filtro.nome,
+          ordem: filtro.ordem
+        })
+        .returning();
+
+      const subfiltros = subfiltrosByFiltro.get(filtro.id) ?? [];
+      for (const subfiltro of subfiltros) {
+        const [createdSubfiltro] = await tx
+          .insert(subfiltrosCatalogo)
+          .values({
+            filtroId: createdFiltro.id,
+            nome: subfiltro.nome,
+            ordem: subfiltro.ordem
+          })
+          .returning();
+        subfiltroIdMap.set(subfiltro.id, createdSubfiltro.id);
+      }
     }
 
     if (campoRows.length) {
@@ -348,6 +418,19 @@ export async function duplicateConviteiraForUser(input: {
             url: media.url,
             r2Key: media.r2Key,
             ordem: media.ordem
+          }))
+        );
+      }
+
+      const mappedSubfiltros = (subfiltrosByArte.get(arte.id) ?? [])
+        .map((subfiltroId) => subfiltroIdMap.get(subfiltroId))
+        .filter((subfiltroId): subfiltroId is string => Boolean(subfiltroId));
+
+      if (mappedSubfiltros.length) {
+        await tx.insert(arteSubfiltros).values(
+          mappedSubfiltros.map((subfiltroId) => ({
+            arteId: createdArte.id,
+            subfiltroId
           }))
         );
       }
@@ -410,6 +493,45 @@ export async function getTiposForConviteira(conviteiraId: string) {
     .from(tiposConvite)
     .where(eq(tiposConvite.conviteiraId, conviteiraId))
     .orderBy(asc(tiposConvite.ordem), asc(tiposConvite.nomePublico));
+}
+
+export async function getFiltrosForConviteira(
+  conviteiraId: string
+): Promise<CatalogFiltro[]> {
+  const filtroRows = await getDb()
+    .select()
+    .from(filtrosCatalogo)
+    .where(eq(filtrosCatalogo.conviteiraId, conviteiraId))
+    .orderBy(asc(filtrosCatalogo.ordem), asc(filtrosCatalogo.nome));
+
+  if (!filtroRows.length) {
+    return [];
+  }
+
+  const subfiltroRows = await getDb()
+    .select()
+    .from(subfiltrosCatalogo)
+    .where(
+      inArray(
+        subfiltrosCatalogo.filtroId,
+        filtroRows.map((filtro) => filtro.id)
+      )
+    )
+    .orderBy(asc(subfiltrosCatalogo.ordem), asc(subfiltrosCatalogo.nome));
+
+  const subfiltrosByFiltro = subfiltroRows.reduce((map, subfiltro) => {
+    const list = map.get(subfiltro.filtroId) ?? [];
+    list.push(toCatalogSubfiltro(subfiltro));
+    map.set(subfiltro.filtroId, list);
+    return map;
+  }, new Map<string, CatalogSubfiltro[]>());
+
+  return filtroRows.map((filtro) => ({
+    id: filtro.id,
+    nome: filtro.nome,
+    ordem: filtro.ordem,
+    subfiltros: subfiltrosByFiltro.get(filtro.id) ?? []
+  }));
 }
 
 export async function getCamposForConviteira(conviteiraId: string) {
@@ -568,13 +690,14 @@ export async function getProducaoForTag(
 }
 
 export async function getAdminArtes(conviteiraId: string): Promise<CatalogArte[]> {
-  const [arteRows, tipoRows] = await Promise.all([
+  const [arteRows, tipoRows, filtros] = await Promise.all([
     getDb()
       .select()
       .from(artes)
       .where(eq(artes.conviteiraId, conviteiraId))
       .orderBy(asc(artes.ordem), asc(artes.nome)),
-    getTiposForConviteira(conviteiraId)
+    getTiposForConviteira(conviteiraId),
+    getFiltrosForConviteira(conviteiraId)
   ]);
 
   const mediaRows = arteRows.length
@@ -592,6 +715,10 @@ export async function getAdminArtes(conviteiraId: string): Promise<CatalogArte[]
 
   const tipoById = new Map(tipoRows.map((tipo) => [tipo.id, toCatalogTipo(tipo)]));
   const mediaByArte = groupMediaByArte(mediaRows);
+  const subfiltrosByArte = await getSubfiltrosByArteIds(
+    arteRows.map((arte) => arte.id),
+    filtros
+  );
 
   return arteRows.map((arte) => ({
     id: arte.id,
@@ -606,6 +733,7 @@ export async function getAdminArtes(conviteiraId: string): Promise<CatalogArte[]
     ordem: arte.ordem,
     ativo: arte.ativo,
     tipo: arte.tipoId ? tipoById.get(arte.tipoId) ?? null : null,
+    subfiltros: subfiltrosByArte.get(arte.id) ?? [],
     midias: mediaByArte.get(arte.id) ?? []
   }));
 }
@@ -617,8 +745,9 @@ export async function getPublicCatalog(slug: string): Promise<PublicCatalog | nu
     return null;
   }
 
-  const [tipoRows, campoRows, arteRows] = await Promise.all([
+  const [tipoRows, filtroRows, campoRows, arteRows] = await Promise.all([
     getTiposForConviteira(conviteira.id),
+    getFiltrosForConviteira(conviteira.id),
     getCamposForConviteira(conviteira.id),
     getDb()
       .select()
@@ -643,6 +772,10 @@ export async function getPublicCatalog(slug: string): Promise<PublicCatalog | nu
 
   const tipoById = new Map(tipoRows.map((tipo) => [tipo.id, toCatalogTipo(tipo)]));
   const mediaByArte = groupMediaByArte(mediaRows);
+  const subfiltrosByArte = await getSubfiltrosByArteIds(
+    activeArtes.map((arte) => arte.id),
+    filtroRows
+  );
 
   return {
     conviteira: {
@@ -658,6 +791,7 @@ export async function getPublicCatalog(slug: string): Promise<PublicCatalog | nu
       fonteCatalogo: conviteira.fonteCatalogo
     },
     tipos: tipoRows.map(toCatalogTipo),
+    filtros: filtroRows,
     artes: activeArtes.map((arte) => ({
       id: arte.id,
       tipoId: arte.tipoId,
@@ -670,6 +804,7 @@ export async function getPublicCatalog(slug: string): Promise<PublicCatalog | nu
       ordem: arte.ordem,
       ativo: arte.ativo,
       tipo: arte.tipoId ? tipoById.get(arte.tipoId) ?? null : null,
+      subfiltros: subfiltrosByArte.get(arte.id) ?? [],
       midias: mediaByArte.get(arte.id) ?? []
     })),
     campos: campoRows.map(toCatalogCampo)
@@ -691,6 +826,39 @@ function groupMediaByArte(rows: Array<typeof arteMidias.$inferSelect>) {
   }, new Map<string, CatalogMedia[]>());
 }
 
+async function getSubfiltrosByArteIds(
+  arteIds: string[],
+  filtros: CatalogFiltro[]
+) {
+  if (!arteIds.length || !filtros.length) {
+    return new Map<string, CatalogSubfiltro[]>();
+  }
+
+  const subfiltroById = new Map(
+    filtros.flatMap((filtro) =>
+      filtro.subfiltros.map((subfiltro) => [subfiltro.id, subfiltro] as const)
+    )
+  );
+
+  const rows = await getDb()
+    .select()
+    .from(arteSubfiltros)
+    .where(inArray(arteSubfiltros.arteId, arteIds));
+
+  return rows.reduce((map, row) => {
+    const subfiltro = subfiltroById.get(row.subfiltroId);
+
+    if (!subfiltro) {
+      return map;
+    }
+
+    const list = map.get(row.arteId) ?? [];
+    list.push(subfiltro);
+    map.set(row.arteId, list);
+    return map;
+  }, new Map<string, CatalogSubfiltro[]>());
+}
+
 function toCatalogTipo(tipo: typeof tiposConvite.$inferSelect): CatalogTipo {
   return {
     id: tipo.id,
@@ -700,6 +868,17 @@ function toCatalogTipo(tipo: typeof tiposConvite.$inferSelect): CatalogTipo {
     emoji: tipo.emoji,
     modoDisplay: tipo.modoDisplay,
     ordem: tipo.ordem
+  };
+}
+
+function toCatalogSubfiltro(
+  subfiltro: typeof subfiltrosCatalogo.$inferSelect
+): CatalogSubfiltro {
+  return {
+    id: subfiltro.id,
+    filtroId: subfiltro.filtroId,
+    nome: subfiltro.nome,
+    ordem: subfiltro.ordem
   };
 }
 

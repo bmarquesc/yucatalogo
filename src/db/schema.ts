@@ -5,6 +5,7 @@ import {
   date,
   integer,
   jsonb,
+  primaryKey,
   pgTable,
   text,
   timestamp,
@@ -112,6 +113,41 @@ export const arteMidias = pgTable(
   })
 );
 
+export const filtrosCatalogo = pgTable("filtros_catalogo", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  conviteiraId: uuid("conviteira_id")
+    .notNull()
+    .references(() => conviteiras.id, { onDelete: "cascade" }),
+  nome: text("nome").notNull(),
+  ordem: integer("ordem").default(0),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).defaultNow()
+});
+
+export const subfiltrosCatalogo = pgTable("subfiltros_catalogo", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  filtroId: uuid("filtro_id")
+    .notNull()
+    .references(() => filtrosCatalogo.id, { onDelete: "cascade" }),
+  nome: text("nome").notNull(),
+  ordem: integer("ordem").default(0),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).defaultNow()
+});
+
+export const arteSubfiltros = pgTable(
+  "arte_subfiltros",
+  {
+    arteId: uuid("arte_id")
+      .notNull()
+      .references(() => artes.id, { onDelete: "cascade" }),
+    subfiltroId: uuid("subfiltro_id")
+      .notNull()
+      .references(() => subfiltrosCatalogo.id, { onDelete: "cascade" })
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.arteId, table.subfiltroId] })
+  })
+);
+
 export const camposPedido = pgTable(
   "campos_pedido",
   {
@@ -192,6 +228,9 @@ export type AcessoKiwify = typeof acessosKiwify.$inferSelect;
 export type TipoConvite = typeof tiposConvite.$inferSelect;
 export type Arte = typeof artes.$inferSelect;
 export type ArteMidia = typeof arteMidias.$inferSelect;
+export type FiltroCatalogo = typeof filtrosCatalogo.$inferSelect;
+export type SubfiltroCatalogo = typeof subfiltrosCatalogo.$inferSelect;
+export type ArteSubfiltro = typeof arteSubfiltros.$inferSelect;
 export type CampoPedido = typeof camposPedido.$inferSelect;
 export type Pedido = typeof pedidos.$inferSelect;
 export type GastoCaixa = typeof gastosCaixa.$inferSelect;

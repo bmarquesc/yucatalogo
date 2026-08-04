@@ -1,8 +1,13 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { getDb } from "@/db";
-import { artes } from "@/db/schema";
+import {
+  arteSubfiltros,
+  artes,
+  filtrosCatalogo,
+  subfiltrosCatalogo
+} from "@/db/schema";
 import { handleRouteError, jsonError, readJson } from "@/lib/api";
 import { requireConviteira } from "@/lib/auth";
 
@@ -19,6 +24,7 @@ type ArteUpdatePayload = {
   valorAPartir?: boolean | null;
   ordem?: number;
   ativo?: boolean;
+  subfiltroIds?: string[] | null;
 };
 
 export async function PUT(
@@ -60,6 +66,30 @@ export async function PUT(
       return jsonError("Arte não encontrada.", 404);
     }
 
+    if (body.subfiltroIds !== undefined) {
+      const subfiltroIds = await resolveSubfiltroIds(
+        conviteira.id,
+        body.subfiltroIds
+      );
+
+      if (!subfiltroIds) {
+        return jsonError("Subfiltro nao encontrado.", 404);
+      }
+
+      await getDb()
+        .delete(arteSubfiltros)
+        .where(eq(arteSubfiltros.arteId, updated.id));
+
+      if (subfiltroIds.length) {
+        await getDb().insert(arteSubfiltros).values(
+          subfiltroIds.map((subfiltroId) => ({
+            arteId: updated.id,
+            subfiltroId
+          }))
+        );
+      }
+    }
+
     return NextResponse.json({ arte: updated });
   } catch (error) {
     return handleRouteError(error);
@@ -76,6 +106,39 @@ function sanitizeOptionalMoney(value: unknown) {
   }
 
   return Math.round(value);
+}
+
+async function resolveSubfiltroIds(
+  conviteiraId: string,
+  value: string[] | null | undefined
+) {
+  const requested = Array.from(
+    new Set((value ?? []).filter((id) => typeof id === "string" && id.trim()))
+  );
+
+  if (!requested.length) {
+    return [];
+  }
+
+  const rows = await getDb()
+    .select({ id: subfiltrosCatalogo.id })
+    .from(subfiltrosCatalogo)
+    .innerJoin(
+      filtrosCatalogo,
+      eq(subfiltrosCatalogo.filtroId, filtrosCatalogo.id)
+    )
+    .where(
+      and(
+        eq(filtrosCatalogo.conviteiraId, conviteiraId),
+        inArray(subfiltrosCatalogo.id, requested)
+      )
+    );
+
+  if (rows.length !== requested.length) {
+    return null;
+  }
+
+  return rows.map((row) => row.id);
 }
 
 export async function DELETE(
