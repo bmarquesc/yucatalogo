@@ -113,11 +113,20 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
         }
       >
         {catalog.conviteira.bannerUrl ? (
-          <img
-            alt={`Banner ${catalog.conviteira.nomeMarca}`}
-            className="public-hero-banner"
-            src={catalog.conviteira.bannerUrl}
-          />
+          <>
+            <img
+              alt={`Banner ${catalog.conviteira.nomeMarca}`}
+              className="public-hero-banner"
+              src={catalog.conviteira.bannerUrl}
+            />
+            {catalog.conviteira.logoUrl ? (
+              <img
+                alt={`Logo ${catalog.conviteira.nomeMarca}`}
+                className="public-hero-logo"
+                src={catalog.conviteira.logoUrl}
+              />
+            ) : null}
+          </>
         ) : (
           <div className="public-hero-copy">
             <p className="public-hero-kicker">Catálogo digital</p>

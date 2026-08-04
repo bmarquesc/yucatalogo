@@ -1099,6 +1099,7 @@ button {
   display: block;
   min-height: 0;
   padding: 0;
+  position: relative;
 }
 
 .public-hero-banner {
@@ -1107,6 +1108,16 @@ button {
   height: auto;
   object-fit: contain;
   width: 100%;
+}
+
+.public-hero-logo {
+  height: clamp(50px, 15vw, 104px);
+  left: clamp(12px, 4vw, 52px);
+  object-fit: contain;
+  position: absolute;
+  top: clamp(10px, 3vw, 32px);
+  width: clamp(50px, 15vw, 104px);
+  z-index: 2;
 }
 
 .public-hero-copy {
