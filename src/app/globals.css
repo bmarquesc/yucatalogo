@@ -1200,6 +1200,10 @@ button {
   min-width: 0;
 }
 
+.public-section-header > div:first-child {
+  display: none;
+}
+
 .public-section-kicker {
   color: var(--brand-accent);
 }
