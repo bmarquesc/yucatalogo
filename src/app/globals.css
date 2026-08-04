@@ -1094,6 +1094,21 @@ button {
   padding: clamp(48px, 12vw, 118px) clamp(18px, 7vw, 92px);
 }
 
+.public-hero[data-has-custom-banner="true"] {
+  background: #fffaf6;
+  display: block;
+  min-height: 0;
+  padding: 0;
+}
+
+.public-hero-banner {
+  aspect-ratio: 1080 / 515;
+  display: block;
+  height: auto;
+  object-fit: contain;
+  width: 100%;
+}
+
 .public-hero-copy {
   color: #fff;
   max-width: 310px;

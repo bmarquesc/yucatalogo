@@ -46,6 +46,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
     featuredArte?.midias[0] ??
     null;
   const heroImage = catalog.conviteira.bannerUrl || featuredMedia?.url || "";
+  const hasCustomBanner = Boolean(catalog.conviteira.bannerUrl);
 
   const activeTipoData = catalog.tipos.find((tipo) => tipo.id === activeTipo);
   const filteredArtes = useMemo(() => {
@@ -89,7 +90,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
     "--brand-accent": catalog.conviteira.corDestaque || "#C9A96E",
     "--catalog-font-body": selectedFont.bodyFamily,
     "--catalog-font-display": selectedFont.displayFamily,
-    "--public-hero-image-fit": catalog.conviteira.bannerUrl ? "contain" : "cover"
+    "--public-hero-image-fit": "cover"
   } as CSSProperties;
 
   function selectSubfilter(filtroId: string, subfiltroId: string) {
@@ -104,25 +105,34 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
     <main className="public-shell" style={shellStyle}>
       <section
         className="public-hero"
+        data-has-custom-banner={hasCustomBanner ? "true" : undefined}
         style={
-          heroImage
+          !hasCustomBanner && heroImage
             ? ({ "--public-hero-image": `url("${heroImage}")` } as CSSProperties)
             : undefined
         }
       >
-        <div className="public-hero-copy">
-          <p className="public-hero-kicker">Catálogo digital</p>
-          <h1 className="font-display public-hero-title">
-            {catalog.conviteira.nomeMarca}
-          </h1>
-          <p className="public-hero-text">
-            {catalog.conviteira.bio ||
-              "Convites digitais personalizados para transformar a festa em um momento ainda mais especial."}
-          </p>
-          <a className="public-hero-button" href="#catalogo">
-            Conhecer modelos
-          </a>
-        </div>
+        {catalog.conviteira.bannerUrl ? (
+          <img
+            alt={`Banner ${catalog.conviteira.nomeMarca}`}
+            className="public-hero-banner"
+            src={catalog.conviteira.bannerUrl}
+          />
+        ) : (
+          <div className="public-hero-copy">
+            <p className="public-hero-kicker">Catálogo digital</p>
+            <h1 className="font-display public-hero-title">
+              {catalog.conviteira.nomeMarca}
+            </h1>
+            <p className="public-hero-text">
+              {catalog.conviteira.bio ||
+                "Convites digitais personalizados para transformar a festa em um momento ainda mais especial."}
+            </p>
+            <a className="public-hero-button" href="#catalogo">
+              Conhecer modelos
+            </a>
+          </div>
+        )}
       </section>
 
       <nav aria-label="Tipos de convite" className="public-tabs" id="catalogo">
