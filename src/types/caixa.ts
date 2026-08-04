@@ -1,6 +1,13 @@
 export type StatusPedido = "em_aberto" | "sinal_pago" | "pago" | "cancelado";
 export type OrigemPedido = "balcao" | "catalogo";
 
+export type CaixaRecebimento = {
+  id: string;
+  valor: number | null;
+  dataRecebimento: string | null;
+  descricao: string | null;
+};
+
 export type CaixaPedido = {
   id: string;
   arteId: string | null;
@@ -11,6 +18,7 @@ export type CaixaPedido = {
   origem: OrigemPedido | string | null;
   valorTotal: number | null;
   valorPago: number | null;
+  recebimentos: CaixaRecebimento[];
   status: StatusPedido | string | null;
   servicosAdicionais: string[] | null;
   servicosOutros: string | null;

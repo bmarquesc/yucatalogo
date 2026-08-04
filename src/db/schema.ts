@@ -210,6 +210,17 @@ export const pedidos = pgTable(
   })
 );
 
+export const pedidoRecebimentos = pgTable("pedido_recebimentos", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  pedidoId: uuid("pedido_id")
+    .notNull()
+    .references(() => pedidos.id, { onDelete: "cascade" }),
+  valor: integer("valor").default(0),
+  dataRecebimento: date("data_recebimento").default(sql`CURRENT_DATE`),
+  descricao: text("descricao"),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).defaultNow()
+});
+
 export const gastosCaixa = pgTable("gastos_caixa", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   conviteiraId: uuid("conviteira_id")
@@ -233,4 +244,5 @@ export type SubfiltroCatalogo = typeof subfiltrosCatalogo.$inferSelect;
 export type ArteSubfiltro = typeof arteSubfiltros.$inferSelect;
 export type CampoPedido = typeof camposPedido.$inferSelect;
 export type Pedido = typeof pedidos.$inferSelect;
+export type PedidoRecebimento = typeof pedidoRecebimentos.$inferSelect;
 export type GastoCaixa = typeof gastosCaixa.$inferSelect;

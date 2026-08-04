@@ -183,6 +183,29 @@ export async function migrateDatabase() {
   `);
 
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS pedido_recebimentos (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      pedido_id UUID NOT NULL REFERENCES pedidos(id) ON DELETE CASCADE,
+      valor INT DEFAULT 0,
+      data_recebimento DATE DEFAULT CURRENT_DATE,
+      descricao TEXT,
+      criado_em TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await db.execute(sql`
+    INSERT INTO pedido_recebimentos (pedido_id, valor, data_recebimento, descricao)
+    SELECT id, valor_pago, COALESCE(data_pedido, CURRENT_DATE), 'Valor pago informado no pedido'
+    FROM pedidos
+    WHERE COALESCE(valor_pago, 0) > 0
+      AND NOT EXISTS (
+        SELECT 1
+        FROM pedido_recebimentos
+        WHERE pedido_recebimentos.pedido_id = pedidos.id
+      )
+  `);
+
+  await db.execute(sql`
     ALTER TABLE pedidos
     ADD COLUMN IF NOT EXISTS tag TEXT
   `);

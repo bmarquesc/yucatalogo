@@ -49,6 +49,19 @@ const origemLabels: Record<OrigemPedido, string> = {
   catalogo: "Catálogo"
 };
 
+type RecebimentoForm = {
+  id: string;
+  valor: string;
+  dataRecebimento: string;
+  descricao: string;
+};
+
+type RecebimentoPayload = {
+  valor: number;
+  dataRecebimento: string;
+  descricao: string | null;
+};
+
 const emptyPedido = {
   clienteNome: "",
   clienteWhatsapp: "",
@@ -57,7 +70,7 @@ const emptyPedido = {
   arteNome: "",
   origem: "balcao" as OrigemPedido,
   valorTotal: "0,00",
-  valorPago: "",
+  recebimentos: [] as RecebimentoForm[],
   status: "em_aberto" as StatusPedido,
   servicosAdicionais: [] as OrderServiceId[],
   servicosOutros: "",
@@ -150,6 +163,14 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
     [effectiveServiceValues]
   );
   const pedidoTotalPreview = moneyToCents(pedidoForm.valorTotal) + servicosValorTotal;
+  const recebimentosTotalPreview = useMemo(
+    () => sumRecebimentoForms(pedidoForm.recebimentos),
+    [pedidoForm.recebimentos]
+  );
+  const pedidoRestantePreview = Math.max(
+    pedidoTotalPreview - recebimentosTotalPreview,
+    0
+  );
 
   async function load() {
     setLoading(true);
@@ -218,6 +239,35 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
     }));
   }
 
+  function addRecebimento() {
+    setPedidoForm((current) => ({
+      ...current,
+      recebimentos: [...current.recebimentos, createRecebimentoForm()]
+    }));
+  }
+
+  function updateRecebimento(
+    id: string,
+    field: keyof Omit<RecebimentoForm, "id">,
+    value: string
+  ) {
+    setPedidoForm((current) => ({
+      ...current,
+      recebimentos: current.recebimentos.map((recebimento) =>
+        recebimento.id === id ? { ...recebimento, [field]: value } : recebimento
+      )
+    }));
+  }
+
+  function removeRecebimento(id: string) {
+    setPedidoForm((current) => ({
+      ...current,
+      recebimentos: current.recebimentos.filter(
+        (recebimento) => recebimento.id !== id
+      )
+    }));
+  }
+
   function openNewPedido() {
     setEditingPedidoId(null);
     setPedidoForm(emptyPedido);
@@ -238,7 +288,7 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
       arteNome: pedido.arteNome ?? "",
       origem: normalizeOrigem(pedido.origem),
       valorTotal: centsToInput(Math.max((pedido.valorTotal ?? 0) - valorServicos, 0)),
-      valorPago: centsToInput(pedido.valorPago),
+      recebimentos: pedidoToRecebimentoForms(pedido),
       status: normalizeStatus(pedido.status),
       servicosAdicionais: sanitizeOrderServices(pedido.servicosAdicionais),
       servicosOutros: pedido.servicosOutros ?? "",
@@ -311,6 +361,11 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
     event.preventDefault();
     setSaving(true);
     const isEditing = Boolean(editingPedidoId);
+    const recebimentos = recebimentoFormsToPayload(pedidoForm.recebimentos);
+    const valorPago = recebimentos.reduce(
+      (total, recebimento) => total + recebimento.valor,
+      0
+    );
 
     const response = await fetch(
       editingPedidoId
@@ -329,7 +384,8 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
           valorTotal:
             moneyToCents(pedidoForm.valorTotal) +
             sumServiceValueInputs(effectiveServiceValues),
-          valorPago: moneyToCents(pedidoForm.valorPago),
+          valorPago,
+          recebimentos,
           status: pedidoForm.status,
           servicosAdicionais: pedidoForm.servicosAdicionais,
           servicosOutros: pedidoForm.servicosOutros,
@@ -587,6 +643,12 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
                         <div className="panel-list-values">
                           <strong>{formatMoney(pedido.valorTotal ?? 0)}</strong>
                           <span>{formatMoney(pedido.valorPago ?? 0)} recebido</span>
+                          {pedido.recebimentos?.length ? (
+                            <span>
+                              {pedido.recebimentos.length} entrada
+                              {pedido.recebimentos.length === 1 ? "" : "s"}
+                            </span>
+                          ) : null}
                           <div style={{ display: "flex", gap: 6 }}>
                             <button
                               className="icon-button"
@@ -862,18 +924,6 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
                 />
               </label>
               <label className="field">
-                <span className="form-label">Valor pago</span>
-                <input
-                  className="input"
-                  inputMode="decimal"
-                  onChange={(event) =>
-                    setPedidoForm({ ...pedidoForm, valorPago: event.target.value })
-                  }
-                  placeholder="0,00"
-                  value={pedidoForm.valorPago}
-                />
-              </label>
-              <label className="field">
                 <span className="form-label">Status</span>
                 <select
                   className="select"
@@ -893,6 +943,98 @@ export function PedidosClient({ productionSlug }: { productionSlug?: string }) {
                 </select>
               </label>
             </div>
+
+            <section className="recebimentos-panel">
+              <div className="recebimentos-header">
+                <div>
+                  <p className="form-label">Recebimentos</p>
+                  <p>
+                    Lance cada entrada com a data em que ela deve contar no
+                    caixa.
+                  </p>
+                </div>
+                <button
+                  className="button secondary"
+                  onClick={addRecebimento}
+                  type="button"
+                >
+                  <Plus size={17} aria-hidden="true" />
+                  Adicionar
+                </button>
+              </div>
+
+              {pedidoForm.recebimentos.length ? (
+                <div className="recebimentos-list">
+                  {pedidoForm.recebimentos.map((recebimento, index) => (
+                    <div className="recebimento-row" key={recebimento.id}>
+                      <label className="field">
+                        <span className="form-label">Valor</span>
+                        <input
+                          className="input"
+                          inputMode="decimal"
+                          onChange={(event) =>
+                            updateRecebimento(
+                              recebimento.id,
+                              "valor",
+                              event.target.value
+                            )
+                          }
+                          placeholder="0,00"
+                          value={recebimento.valor}
+                        />
+                      </label>
+                      <label className="field">
+                        <span className="form-label">Data da entrada</span>
+                        <input
+                          className="input"
+                          onChange={(event) =>
+                            updateRecebimento(
+                              recebimento.id,
+                              "dataRecebimento",
+                              event.target.value
+                            )
+                          }
+                          type="date"
+                          value={recebimento.dataRecebimento}
+                        />
+                      </label>
+                      <label className="field">
+                        <span className="form-label">Descrição</span>
+                        <input
+                          className="input"
+                          onChange={(event) =>
+                            updateRecebimento(
+                              recebimento.id,
+                              "descricao",
+                              event.target.value
+                            )
+                          }
+                          placeholder={index === 0 ? "Sinal" : "Restante"}
+                          value={recebimento.descricao}
+                        />
+                      </label>
+                      <button
+                        className="icon-button"
+                        onClick={() => removeRecebimento(recebimento.id)}
+                        title="Remover recebimento"
+                        type="button"
+                      >
+                        <Trash2 size={16} aria-hidden="true" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="recebimentos-empty">
+                  Nenhum pagamento lançado ainda.
+                </p>
+              )}
+
+              <div className="recebimentos-total">
+                <span>Recebido: {formatMoney(recebimentosTotalPreview)}</span>
+                <strong>Restante: {formatMoney(pedidoRestantePreview)}</strong>
+              </div>
+            </section>
 
             <div
               style={{
@@ -1177,6 +1319,69 @@ function MetricCard({
   );
 }
 
+function createRecebimentoForm(
+  recebimento: Partial<RecebimentoForm> = {}
+): RecebimentoForm {
+  return {
+    id: recebimento.id ?? createLocalId(),
+    valor: recebimento.valor ?? "",
+    dataRecebimento: recebimento.dataRecebimento ?? today(),
+    descricao: recebimento.descricao ?? ""
+  };
+}
+
+function pedidoToRecebimentoForms(pedido: CaixaPedido): RecebimentoForm[] {
+  if (pedido.recebimentos?.length) {
+    return pedido.recebimentos.map((recebimento) =>
+      createRecebimentoForm({
+        id: recebimento.id,
+        valor: centsToInput(recebimento.valor),
+        dataRecebimento: recebimento.dataRecebimento ?? pedido.dataPedido ?? today(),
+        descricao: recebimento.descricao ?? ""
+      })
+    );
+  }
+
+  if ((pedido.valorPago ?? 0) > 0) {
+    return [
+      createRecebimentoForm({
+        valor: centsToInput(pedido.valorPago),
+        dataRecebimento: pedido.dataPedido ?? today(),
+        descricao: "Recebimento"
+      })
+    ];
+  }
+
+  return [];
+}
+
+function recebimentoFormsToPayload(
+  recebimentos: RecebimentoForm[]
+): RecebimentoPayload[] {
+  return recebimentos
+    .map((recebimento) => ({
+      valor: moneyToCents(recebimento.valor),
+      dataRecebimento: recebimento.dataRecebimento || today(),
+      descricao: recebimento.descricao.trim() || null
+    }))
+    .filter((recebimento) => recebimento.valor > 0);
+}
+
+function sumRecebimentoForms(recebimentos: RecebimentoForm[]) {
+  return recebimentos.reduce(
+    (total, recebimento) => total + moneyToCents(recebimento.valor),
+    0
+  );
+}
+
+function createLocalId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function statusLabel(status: CaixaPedido["status"]) {
   if (status && status in statusLabels) {
     return statusLabels[status as StatusPedido];
@@ -1312,6 +1517,20 @@ function buildPedidoConfirmationText(pedido: CaixaPedido) {
 
   if (serviceLabels.length) {
     lines.push("", "Serviços adicionais:", ...serviceLabels.map((label) => `- ${label}`));
+  }
+
+  const recebimentoLines = (pedido.recebimentos ?? [])
+    .filter((recebimento) => (recebimento.valor ?? 0) > 0)
+    .map((recebimento) => {
+      const descricao = recebimento.descricao?.trim();
+      const suffix = descricao ? ` - ${descricao}` : "";
+      return `- ${formatDate(recebimento.dataRecebimento)}: ${formatMoney(
+        recebimento.valor ?? 0
+      )}${suffix}`;
+    });
+
+  if (recebimentoLines.length) {
+    lines.push("", "Recebimentos:", ...recebimentoLines);
   }
 
   if (observacoes) {

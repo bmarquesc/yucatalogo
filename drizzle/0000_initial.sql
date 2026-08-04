@@ -101,6 +101,15 @@ CREATE TABLE IF NOT EXISTS pedidos (
   criado_em TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS pedido_recebimentos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pedido_id UUID NOT NULL REFERENCES pedidos(id) ON DELETE CASCADE,
+  valor INT DEFAULT 0,
+  data_recebimento DATE DEFAULT CURRENT_DATE,
+  descricao TEXT,
+  criado_em TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS gastos_caixa (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conviteira_id UUID NOT NULL REFERENCES conviteiras(id) ON DELETE CASCADE,

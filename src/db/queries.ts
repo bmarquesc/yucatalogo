@@ -10,6 +10,7 @@ import {
   conviteiras,
   filtrosCatalogo,
   gastosCaixa,
+  pedidoRecebimentos,
   pedidos,
   subfiltrosCatalogo,
   tiposConvite
@@ -25,7 +26,12 @@ import type {
   CatalogTipo,
   PublicCatalog
 } from "@/types/catalog";
-import type { CaixaData, CaixaGasto, CaixaPedido } from "@/types/caixa";
+import type {
+  CaixaData,
+  CaixaGasto,
+  CaixaPedido,
+  CaixaRecebimento
+} from "@/types/caixa";
 import type { ProducaoData, ProducaoPedido } from "@/types/producao";
 
 export async function getKiwifyAccessByEmail(email: string) {
@@ -561,15 +567,61 @@ export async function getCaixaForConviteira(
       .orderBy(asc(gastosCaixa.dataGasto), asc(gastosCaixa.descricao))
   ]);
 
-  const pedidosData = pedidoRows
-    .map(toCaixaPedido)
+  const recebimentoRows = pedidoRows.length
+    ? await getDb()
+        .select()
+        .from(pedidoRecebimentos)
+        .where(
+          inArray(
+            pedidoRecebimentos.pedidoId,
+            pedidoRows.map((pedido) => pedido.id)
+          )
+        )
+        .orderBy(
+          asc(pedidoRecebimentos.dataRecebimento),
+          asc(pedidoRecebimentos.criadoEm)
+        )
+    : [];
+
+  const recebimentosByPedido = groupRecebimentosByPedido(recebimentoRows);
+  const pedidosAll = pedidoRows.map((pedido) =>
+    toCaixaPedido(pedido, recebimentosByPedido.get(pedido.id) ?? [])
+  );
+  const activePedidoIds = new Set(
+    pedidosAll
+      .filter((pedido) => pedido.status !== "cancelado")
+      .map((pedido) => pedido.id)
+  );
+
+  const pedidosData = pedidosAll
     .filter((pedido) => isInMonth(pedido.dataPedido, normalizedMonth));
   const gastosData = gastoRows
     .map(toCaixaGasto)
     .filter((gasto) => isInMonth(gasto.dataGasto, normalizedMonth));
   const pedidosAtivos = pedidosData.filter((pedido) => pedido.status !== "cancelado");
   const bruto = sumCurrency(pedidosAtivos.map((pedido) => pedido.valorTotal));
-  const recebido = sumCurrency(pedidosAtivos.map((pedido) => pedido.valorPago));
+  const recebidoPorData = sumCurrency(
+    recebimentoRows
+      .filter(
+        (recebimento) =>
+          activePedidoIds.has(recebimento.pedidoId) &&
+          isInMonth(recebimento.dataRecebimento, normalizedMonth)
+      )
+      .map((recebimento) => recebimento.valor)
+  );
+  const recebidoLegado = sumCurrency(
+    pedidosAtivos
+      .filter(
+        (pedido) => !pedido.recebimentos.length && (pedido.valorPago ?? 0) > 0
+      )
+      .map((pedido) => pedido.valorPago)
+  );
+  const recebido = recebidoPorData + recebidoLegado;
+  const aReceber = sumCurrency(
+    pedidosAtivos.map((pedido) =>
+      Math.max((pedido.valorTotal ?? 0) - (pedido.valorPago ?? 0), 0)
+    )
+  );
   const gastos = sumCurrency(gastosData.map((gasto) => gasto.valor));
 
   return {
@@ -577,7 +629,7 @@ export async function getCaixaForConviteira(
     resumo: {
       bruto,
       recebido,
-      aReceber: Math.max(bruto - recebido, 0),
+      aReceber,
       gastos,
       liquido: recebido - gastos,
       pedidosBalcaoCount: pedidosAtivos.filter(
@@ -949,7 +1001,36 @@ function sumCurrency(values: Array<number | null | undefined>) {
   return values.reduce<number>((total, value) => total + (value ?? 0), 0);
 }
 
-function toCaixaPedido(pedido: typeof pedidos.$inferSelect): CaixaPedido {
+function groupRecebimentosByPedido(
+  rows: Array<typeof pedidoRecebimentos.$inferSelect>
+) {
+  return rows.reduce((map, row) => {
+    const list = map.get(row.pedidoId) ?? [];
+    list.push(toCaixaRecebimento(row));
+    map.set(row.pedidoId, list);
+    return map;
+  }, new Map<string, CaixaRecebimento[]>());
+}
+
+function toCaixaRecebimento(
+  recebimento: typeof pedidoRecebimentos.$inferSelect
+): CaixaRecebimento {
+  return {
+    id: recebimento.id,
+    valor: recebimento.valor,
+    dataRecebimento: recebimento.dataRecebimento,
+    descricao: recebimento.descricao
+  };
+}
+
+function toCaixaPedido(
+  pedido: typeof pedidos.$inferSelect,
+  recebimentos: CaixaRecebimento[] = []
+): CaixaPedido {
+  const valorPago = recebimentos.length
+    ? sumCurrency(recebimentos.map((recebimento) => recebimento.valor))
+    : pedido.valorPago;
+
   return {
     id: pedido.id,
     arteId: pedido.arteId,
@@ -959,7 +1040,8 @@ function toCaixaPedido(pedido: typeof pedidos.$inferSelect): CaixaPedido {
     arteNome: pedido.arteNome,
     origem: normalizeOrigemPedido(pedido.origem),
     valorTotal: pedido.valorTotal,
-    valorPago: pedido.valorPago,
+    valorPago,
+    recebimentos,
     status: pedido.status,
     servicosAdicionais: pedido.servicosAdicionais,
     servicosOutros: pedido.servicosOutros,

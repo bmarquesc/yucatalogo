@@ -902,6 +902,65 @@ button {
   font-weight: 700;
 }
 
+.recebimentos-panel {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.recebimentos-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.recebimentos-header p:last-child,
+.recebimentos-empty {
+  color: var(--mid);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 6px 0 0;
+}
+
+.recebimentos-list {
+  display: grid;
+  gap: 10px;
+}
+
+.recebimento-row {
+  align-items: end;
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(110px, 0.85fr) minmax(150px, 1fr) minmax(150px, 1.1fr) auto;
+  padding: 10px;
+}
+
+.recebimentos-total {
+  align-items: center;
+  background: var(--cream);
+  border-radius: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.recebimentos-total span {
+  color: var(--mid);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .public-shell {
   background: #fffaf6;
   color: var(--brand-primary, #0d0d0d);
@@ -2546,5 +2605,10 @@ button {
   .arte-linked-card {
     align-items: stretch;
     display: grid;
+  }
+
+  .recebimento-row {
+    align-items: stretch;
+    grid-template-columns: 1fr;
   }
 }
