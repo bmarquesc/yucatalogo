@@ -800,77 +800,209 @@ button {
 }
 
 .public-shell {
-  background: #fff;
+  background: #fffaf6;
   color: var(--brand-primary, #0d0d0d);
   font-family: var(--catalog-font-body, Montserrat, ui-sans-serif, system-ui, sans-serif);
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
-.public-banner {
-  aspect-ratio: 16 / 7;
-  overflow: hidden;
-  width: 100%;
+.public-announcement {
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  padding: 10px 14px;
+  text-align: center;
 }
 
-.public-header {
-  align-items: flex-start;
+.public-shop-header {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   display: flex;
-  gap: 14px;
-  margin: 0 auto;
-  max-width: 1120px;
-  padding: 18px 14px 14px;
+  gap: 16px;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 12px clamp(14px, 4vw, 48px);
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
-.public-logo {
-  border: 2px solid var(--brand-accent);
-  border-radius: 50%;
-  flex: 0 0 auto;
-  height: 62px;
-  object-fit: cover;
-  width: 62px;
-}
-
-.public-brand-copy {
+.public-shop-brand {
+  align-items: center;
+  color: var(--brand-primary);
+  display: inline-flex;
+  gap: 10px;
   min-width: 0;
 }
 
-.public-brand-title,
+.public-shop-brand span:last-child {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.1;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-logo {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
+  flex: 0 0 auto;
+  height: 46px;
+  object-fit: cover;
+  width: 46px;
+}
+
+.public-logo-fallback {
+  align-items: center;
+  background: var(--brand-accent);
+  border-radius: 50%;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 20px;
+  font-weight: 800;
+  height: 46px;
+  justify-content: center;
+  text-transform: uppercase;
+  width: 46px;
+}
+
+.public-shop-nav {
+  display: none;
+  gap: 26px;
+}
+
+.public-shop-nav a {
+  color: color-mix(in srgb, var(--brand-primary), transparent 24%);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.public-shop-actions {
+  align-items: center;
+  color: var(--brand-primary);
+  display: inline-flex;
+  gap: 13px;
+}
+
+.public-hero {
+  align-items: end;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.28) 56%, rgba(0, 0, 0, 0.08)),
+    var(--public-hero-image),
+    linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-primary), #fff 74%));
+  background-position: center;
+  background-size: cover;
+  display: flex;
+  min-height: clamp(440px, 72vh, 690px);
+  padding: clamp(48px, 12vw, 118px) clamp(18px, 7vw, 92px);
+}
+
+.public-hero-copy {
+  color: #fff;
+  max-width: 310px;
+}
+
+.public-hero-kicker,
+.public-section-kicker {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.public-hero-title,
 .showroom-title {
   color: var(--brand-primary);
   font-family: var(--catalog-font-display);
-  font-weight: 500;
+  font-weight: 650;
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-.public-brand-title {
-  font-size: 42px;
-  line-height: 0.95;
+.public-hero-title {
+  color: #fff;
+  font-size: 38px;
+  letter-spacing: 0;
+  line-height: 0.96;
+  margin-top: 10px;
 }
 
-.public-brand-bio {
-  color: color-mix(in srgb, var(--brand-primary), transparent 28%);
-  font-size: 15px;
+.public-hero-text {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.55;
+  margin: 18px 0 0;
+  max-width: 620px;
+}
+
+.public-hero-button {
+  align-items: center;
+  background: #fff;
+  border-radius: 999px;
+  color: var(--brand-primary);
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  margin-top: 28px;
+  min-height: 48px;
+  padding: 0 22px;
+  text-transform: uppercase;
+}
+
+.public-feature-strip {
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  display: grid;
+  gap: 1px;
+  grid-template-columns: 1fr;
+  margin: 0 auto;
+  max-width: 1200px;
+}
+
+.public-feature-strip div {
+  display: grid;
+  gap: 5px;
+  padding: 18px clamp(16px, 4vw, 28px);
+}
+
+.public-feature-strip strong {
+  color: var(--brand-primary);
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.public-feature-strip span {
+  color: color-mix(in srgb, var(--brand-primary), transparent 38%);
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1.45;
-  margin: 10px 0 0;
-  max-width: 680px;
 }
 
 .public-tabs {
-  background: rgba(255, 255, 255, 0.96);
+  background: #fffaf6;
   border-block: 1px solid rgba(0, 0, 0, 0.08);
   display: flex;
-  gap: 8px;
+  gap: 10px;
   margin: 0 auto;
-  max-width: 1120px;
+  max-width: 1200px;
   overflow-x: auto;
-  padding: 10px 14px;
+  padding: 22px clamp(14px, 4vw, 32px) 16px;
   position: sticky;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  top: 0;
+  top: 72px;
   white-space: nowrap;
-  z-index: 20;
+  z-index: 25;
 }
 
 .public-tabs::-webkit-scrollbar {
@@ -878,15 +1010,15 @@ button {
 }
 
 .public-tab {
-  background: transparent;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 6px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
   color: var(--brand-primary);
   flex: 0 0 auto;
-  font-size: 14px;
-  font-weight: 600;
-  min-height: 38px;
-  padding: 0 12px;
+  font-size: 15px;
+  font-weight: 800;
+  min-height: 46px;
+  padding: 0 16px;
   scroll-snap-align: start;
 }
 
@@ -897,35 +1029,57 @@ button {
 
 .public-content {
   margin: 0 auto;
-  max-width: 1120px;
-  padding: 16px 14px calc(56px + env(safe-area-inset-bottom));
+  max-width: 1200px;
+  min-width: 0;
+  padding: 20px clamp(14px, 4vw, 32px) calc(72px + env(safe-area-inset-bottom));
+}
+
+.public-section-header {
+  align-items: end;
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+  min-width: 0;
+}
+
+.public-section-kicker {
+  color: var(--brand-accent);
+}
+
+.public-section-title {
+  color: var(--brand-primary);
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.02;
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
 }
 
 .public-tipo-description {
   color: color-mix(in srgb, var(--brand-primary), transparent 24%);
   font-family: var(--catalog-font-body);
   font-size: 15px;
-  font-weight: 500;
-  line-height: 1.48;
-  margin: 0 0 14px;
-  max-width: 680px;
+  font-weight: 600;
+  line-height: 1.55;
+  margin: 10px 0 0;
+  max-width: 560px;
 }
 
 .public-search,
 .public-input {
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.14);
-  border-radius: 4px;
+  border-radius: 8px;
   color: var(--brand-primary);
   font-size: 16px;
-  min-height: 46px;
+  min-height: 50px;
   padding: 11px 12px;
   width: 100%;
 }
 
 .public-search-wrap {
   display: block;
-  margin-bottom: 14px;
+  min-width: 0;
   position: relative;
 }
 
@@ -944,24 +1098,34 @@ button {
 
 .public-art-grid {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 158px), 1fr));
+  min-width: 0;
 }
 
 .public-art-card {
   background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(28, 20, 13, 0.07);
   color: var(--brand-primary);
-  display: grid;
   min-width: 0;
   overflow: hidden;
+}
+
+.public-art-card-button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  display: grid;
+  height: 100%;
   padding: 0;
   text-align: left;
   touch-action: manipulation;
+  width: 100%;
 }
 
-.public-art-card:active {
+.public-art-card-button:active {
   transform: scale(0.99);
 }
 
@@ -971,13 +1135,29 @@ button {
   display: block;
   min-width: 0;
   overflow: hidden;
+  position: relative;
   width: 100%;
+}
+
+.public-art-badge {
+  background: var(--brand-accent);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  left: 10px;
+  line-height: 1;
+  padding: 7px 9px;
+  position: absolute;
+  text-transform: uppercase;
+  top: 10px;
+  z-index: 2;
 }
 
 .public-art-caption {
   display: grid;
-  gap: 4px;
-  padding: 10px;
+  gap: 7px;
+  padding: 12px;
 }
 
 .public-art-type,
@@ -995,18 +1175,31 @@ button {
 .public-art-name {
   color: var(--brand-primary);
   font-family: var(--catalog-font-display);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
-  line-height: 1.12;
+  line-height: 1.18;
   overflow-wrap: anywhere;
 }
 
 .public-art-price {
   color: var(--brand-primary);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
   line-height: 1.25;
-  margin-top: 2px;
+}
+
+.public-art-cta {
+  align-items: center;
+  background: var(--brand-primary);
+  border-radius: 6px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 10px;
+  text-transform: uppercase;
 }
 
 .public-empty {
@@ -1812,35 +2005,50 @@ button {
 }
 
 @media (min-width: 680px) {
-  .public-header {
-    align-items: center;
-    gap: 18px;
-    padding: 26px 24px 18px;
-  }
-
   .public-logo {
-    height: 76px;
-    width: 76px;
+    height: 52px;
+    width: 52px;
   }
 
-  .public-brand-title {
-    font-size: 60px;
+  .public-logo-fallback {
+    height: 52px;
+    width: 52px;
   }
 
-  .public-tabs {
-    padding-inline: 24px;
+  .public-shop-brand span:last-child {
+    max-width: 260px;
   }
 
-  .public-content {
-    padding: 22px 24px 64px;
+  .public-shop-nav {
+    display: flex;
+  }
+
+  .public-hero-copy {
+    max-width: 680px;
+  }
+
+  .public-feature-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .public-hero-title {
+    font-size: 68px;
+  }
+
+  .public-hero-text {
+    font-size: 19px;
+  }
+
+  .public-section-title {
+    font-size: 48px;
   }
 
   .public-tipo-description {
     font-size: 16px;
   }
 
-  .public-search {
-    width: min(100%, 420px);
+  .public-section-header {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
   }
 
   .public-art-grid {
@@ -1884,12 +2092,12 @@ button {
 }
 
 @media (min-width: 1040px) {
-  .public-banner {
-    aspect-ratio: 16 / 5;
+  .public-hero-title {
+    font-size: 92px;
   }
 
-  .public-brand-title {
-    font-size: 76px;
+  .public-section-title {
+    font-size: 58px;
   }
 
   .public-art-grid {

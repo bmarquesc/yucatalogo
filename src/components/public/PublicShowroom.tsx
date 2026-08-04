@@ -7,7 +7,9 @@ import {
   Loader2,
   Maximize2,
   MessageCircle,
+  Menu,
   Search,
+  ShoppingBag,
   X
 } from "lucide-react";
 import {
@@ -39,6 +41,12 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
   const [search, setSearch] = useState("");
   const [selectedArte, setSelectedArte] =
     useState<PublicCatalog["artes"][number] | null>(null);
+  const featuredArte = catalog.artes.find((arte) => arte.midias.length);
+  const featuredMedia =
+    featuredArte?.midias.find((media) => media.tipo === "imagem") ??
+    featuredArte?.midias[0] ??
+    null;
+  const heroImage = catalog.conviteira.bannerUrl || featuredMedia?.url || "";
 
   const activeTipoData = catalog.tipos.find((tipo) => tipo.id === activeTipo);
   const filteredArtes = useMemo(() => {
@@ -72,42 +80,84 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
 
   return (
     <main className="public-shell" style={shellStyle}>
-      {catalog.conviteira.bannerUrl ? (
-        <div className="public-banner">
-          <img
-            alt=""
-            src={catalog.conviteira.bannerUrl}
-            style={{ height: "100%", objectFit: "cover", width: "100%" }}
-          />
-        </div>
-      ) : null}
+      <div className="public-announcement">
+        Escolha seu convite pelo WhatsApp.
+      </div>
 
-      <header className="public-header">
-        {catalog.conviteira.logoUrl ? (
-          <img
-            alt=""
-            className="public-logo"
-            src={catalog.conviteira.logoUrl}
-          />
-        ) : null}
-        <div className="public-brand-copy">
-          <h1
-            className="font-display public-brand-title"
+      <header className="public-shop-header">
+        <a className="public-shop-brand" href="#catalogo">
+          {catalog.conviteira.logoUrl ? (
+            <img
+              alt=""
+              className="public-logo"
+              src={catalog.conviteira.logoUrl}
+            />
+          ) : (
+            <span className="public-logo-fallback">
+              {catalog.conviteira.nomeMarca.charAt(0)}
+            </span>
+          )}
+          <span>{catalog.conviteira.nomeMarca}</span>
+        </a>
+
+        <nav className="public-shop-nav" aria-label="Navegação do catálogo">
+          <a href="#catalogo">Modelos</a>
+          <a href="#colecoes">Coleções</a>
+          <a
+            href={`https://wa.me/${catalog.conviteira.whatsapp}`}
+            rel="noreferrer"
+            target="_blank"
           >
-            {catalog.conviteira.nomeMarca}
-          </h1>
-          {catalog.conviteira.bio ? (
-            <p className="public-brand-bio">
-              {catalog.conviteira.bio}
-            </p>
-          ) : null}
+            Contato
+          </a>
+        </nav>
+
+        <div className="public-shop-actions" aria-hidden="true">
+          <Search size={19} />
+          <ShoppingBag size={19} />
+          <Menu size={20} />
         </div>
       </header>
 
-      <nav
-        aria-label="Tipos de convite"
-        className="public-tabs"
+      <section
+        className="public-hero"
+        style={
+          heroImage
+            ? ({ "--public-hero-image": `url("${heroImage}")` } as CSSProperties)
+            : undefined
+        }
       >
+        <div className="public-hero-copy">
+          <p className="public-hero-kicker">Catálogo digital</p>
+          <h1 className="font-display public-hero-title">
+            {catalog.conviteira.nomeMarca}
+          </h1>
+          <p className="public-hero-text">
+            {catalog.conviteira.bio ||
+              "Convites digitais personalizados para transformar a festa em um momento ainda mais especial."}
+          </p>
+          <a className="public-hero-button" href="#catalogo">
+            Conhecer modelos
+          </a>
+        </div>
+      </section>
+
+      <section className="public-feature-strip" id="colecoes">
+        <div>
+          <strong>Personalizado</strong>
+          <span>Dados do evento feitos sob medida.</span>
+        </div>
+        <div>
+          <strong>Digital</strong>
+          <span>Pronto para compartilhar no WhatsApp.</span>
+        </div>
+        <div>
+          <strong>Com extras</strong>
+          <span>Filtros, lista, confirmação e mascote.</span>
+        </div>
+      </section>
+
+      <nav aria-label="Tipos de convite" className="public-tabs" id="catalogo">
         <button
           className="public-tab"
           data-active={activeTipo === "todos"}
@@ -130,66 +180,86 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
       </nav>
 
       <section className="public-content">
-        {activeTipoData?.modoDisplay === "demonstracao" &&
-        activeTipoData.descricaoPublica ? (
-          <p className="public-tipo-description">
-            {activeTipoData.descricaoPublica}
-          </p>
-        ) : null}
+        <div className="public-section-header">
+          <div>
+            <p className="public-section-kicker">
+              {activeTipo === "todos" ? "Vitrine" : "Coleção"}
+            </p>
+            <h2 className="font-display public-section-title">
+              {activeTipoData?.nomePublico || "Últimos lançamentos"}
+              {activeTipo === "todos" ? " ✨" : null}
+            </h2>
+            {activeTipoData?.descricaoPublica ? (
+              <p className="public-tipo-description">
+                {activeTipoData.descricaoPublica}
+              </p>
+            ) : (
+              <p className="public-tipo-description">
+                Veja os modelos disponíveis e escolha o convite que combina com a
+                sua comemoração.
+              </p>
+            )}
+          </div>
 
-        {catalog.artes.length ? (
-          <label className="public-search-wrap">
-            <Search
-              aria-hidden="true"
-              className="public-search-icon"
-              size={17}
-            />
-            <input
-              aria-label="Buscar convite"
-              className="public-search"
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por tema, nome ou tipo"
-              value={search}
-            />
-          </label>
-        ) : null}
+          {catalog.artes.length ? (
+            <label className="public-search-wrap">
+              <Search
+                aria-hidden="true"
+                className="public-search-icon"
+                size={17}
+              />
+              <input
+                aria-label="Buscar convite"
+                className="public-search"
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar por tema, nome ou tipo"
+                value={search}
+              />
+            </label>
+          ) : null}
+        </div>
 
         {filteredArtes.length ? (
           <div className="public-art-grid">
-            {filteredArtes.map((arte) => {
+            {filteredArtes.map((arte, index) => {
               const cover =
                 arte.midias.find((media) => media.tipo === "imagem") ??
                 arte.midias[0];
               const priceLabel = formatCatalogPrice(arte.valor, arte.valorAPartir);
 
               return (
-                <button
-                  aria-label={arte.nome}
-                  className="public-art-card"
-                  key={arte.id}
-                  onClick={() => setSelectedArte(arte)}
-                  type="button"
-                >
-                  <span className="public-art-media">
-                    {cover ? (
-                      <ShowroomMedia media={cover} label={arte.nome} />
-                    ) : (
-                      <ShowroomPlaceholder />
-                    )}
-                  </span>
-                  <span className="public-art-caption">
-                    <span className="public-art-type">
-                      {arte.tipo?.nomePublico || "Convite"}
+                <article className="public-art-card" key={arte.id}>
+                  <button
+                    aria-label={arte.nome}
+                    className="public-art-card-button"
+                    onClick={() => setSelectedArte(arte)}
+                    type="button"
+                  >
+                    <span className="public-art-media">
+                      {cover ? (
+                        <ShowroomMedia media={cover} label={arte.nome} />
+                      ) : (
+                        <ShowroomPlaceholder />
+                      )}
+                      <span className="public-art-badge">
+                        {index < 4 ? "Novo" : arte.tipo?.nomePublico || "Convite"}
+                      </span>
                     </span>
-                    <strong className="public-art-name">{arte.nome}</strong>
-                    {arte.tema ? (
-                      <span className="public-art-theme">{arte.tema}</span>
-                    ) : null}
-                    {priceLabel ? (
-                      <span className="public-art-price">{priceLabel}</span>
-                    ) : null}
-                  </span>
-                </button>
+                    <span className="public-art-caption">
+                      <span className="public-art-type">
+                        {arte.tipo?.nomePublico || "Convite digital"}
+                      </span>
+                      <strong className="public-art-name">{arte.nome}</strong>
+                      {arte.tema ? (
+                        <span className="public-art-theme">{arte.tema}</span>
+                      ) : null}
+                      {priceLabel ? (
+                        <span className="public-art-price">{priceLabel}</span>
+                      ) : null}
+                      <span className="public-art-cta">Quero esse convite</span>
+                    </span>
+                  </button>
+                </article>
               );
             })}
           </div>
