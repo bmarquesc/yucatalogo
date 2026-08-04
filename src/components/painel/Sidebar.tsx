@@ -5,6 +5,7 @@ import {
   Copy,
   Images,
   LayoutDashboard,
+  LogOut,
   Palette,
   Plus,
   Settings2,
@@ -12,7 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
+import { SignOutButton, UserButton } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 
 import { useToast } from "@/components/painel/ToastProvider";
@@ -231,19 +232,29 @@ export function Sidebar({
       </Link>
 
       <div className="sidebar-footer">
-        {localDev ? (
-          <div className="sidebar-avatar" title="Acesso local">D</div>
-        ) : (
-          <UserButton afterSignOutUrl="/entrar" />
-        )}
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>
-            {activeCatalogo.nomeMarca}
-          </div>
-          <div style={{ color: "rgba(255,255,255,0.58)", fontSize: 12 }}>
-            /{activeCatalogo.slug}
+        <div className="sidebar-user-row">
+          {localDev ? (
+            <div className="sidebar-avatar" title="Acesso local">D</div>
+          ) : (
+            <UserButton afterSignOutUrl="/entrar" />
+          )}
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>
+              {activeCatalogo.nomeMarca}
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.58)", fontSize: 12 }}>
+              /{activeCatalogo.slug}
+            </div>
           </div>
         </div>
+        {localDev ? null : (
+          <SignOutButton redirectUrl="/entrar">
+            <button className="sidebar-signout" type="button">
+              <LogOut size={16} aria-hidden="true" />
+              <span>Sair</span>
+            </button>
+          </SignOutButton>
+        )}
       </div>
     </aside>
   );

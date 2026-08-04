@@ -423,12 +423,44 @@ button {
 }
 
 .sidebar-footer {
-  align-items: center;
+  align-items: stretch;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  display: flex;
+  display: grid;
   gap: 10px;
   margin-top: auto;
   padding-top: 18px;
+}
+
+.sidebar-user-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.sidebar-user-row > div:last-child {
+  min-width: 0;
+}
+
+.sidebar-signout {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.82);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.sidebar-signout:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--paper);
 }
 
 .sidebar-avatar {
