@@ -173,8 +173,12 @@ export function Sidebar({
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">
-        <div className="sidebar-title">Yu Catálogo</div>
+      <div className="sidebar-brand" aria-label="Yu Sistema">
+        <img
+          alt="Yu Sistema"
+          className="sidebar-logo"
+          src="/yu-sistema-sem-fundo.png"
+        />
         <div className="sidebar-subtitle">{activeCatalogo.nomeMarca}</div>
       </div>
 

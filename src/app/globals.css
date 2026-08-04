@@ -324,21 +324,28 @@ button {
 
 .sidebar-brand {
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  display: grid;
+  justify-items: center;
   padding-bottom: 20px;
 }
 
-.sidebar-title {
-  color: var(--paper);
-  font-family: Poppins, ui-sans-serif, system-ui, sans-serif;
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1.08;
+.sidebar-logo {
+  display: block;
+  height: auto;
+  width: min(150px, 100%);
 }
 
 .sidebar-subtitle {
   color: rgba(255, 255, 255, 0.58);
   font-size: 12px;
-  margin-top: 6px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-top: 10px;
+  max-width: 100%;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .catalog-switcher {

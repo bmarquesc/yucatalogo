@@ -5,8 +5,12 @@ import "@/app/globals.css";
 import { clerkLocalization } from "@/lib/clerkLocalization";
 
 export const metadata: Metadata = {
-  title: "Painel",
-  description: "Painel de catálogo para conviteiras."
+  title: "Yu Sistema",
+  description: "Gestão para conviteiras.",
+  icons: {
+    icon: "/yu-sistema-sem-fundo.png",
+    apple: "/yu-sistema-sem-fundo.png"
+  }
 };
 
 export default function RootLayout({
