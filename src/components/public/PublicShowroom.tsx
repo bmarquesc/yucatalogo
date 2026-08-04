@@ -1203,14 +1203,22 @@ function ShowroomMedia({
 }) {
   const style = {
     cursor: onOpen ? "zoom-in" : undefined,
-    height: "100%",
     objectFit: contained ? "contain" : "cover",
-    width: "100%"
+    ...(contained
+      ? {}
+      : {
+          height: "100%",
+          width: "100%"
+        })
   } as CSSProperties;
+  const className = contained
+    ? "showroom-media showroom-media-contained"
+    : "showroom-media";
 
   if (media.tipo === "video") {
     return (
       <video
+        className={className}
         controls={controls ?? contained}
         playsInline
         src={media.url}
@@ -1219,7 +1227,15 @@ function ShowroomMedia({
     );
   }
 
-  return <img alt={label} onClick={onOpen} src={media.url} style={style} />;
+  return (
+    <img
+      alt={label}
+      className={className}
+      onClick={onOpen}
+      src={media.url}
+      style={style}
+    />
+  );
 }
 
 function ShowroomPlaceholder({ contained = false }: { contained?: boolean }) {

@@ -1667,6 +1667,18 @@ button {
   position: relative;
 }
 
+.showroom-media {
+  display: block;
+  object-position: center;
+}
+
+.showroom-media-contained {
+  height: auto;
+  max-height: 100%;
+  max-width: 100%;
+  width: auto;
+}
+
 .showroom-media-expand {
   align-items: center;
   background: rgba(255, 255, 255, 0.92);
