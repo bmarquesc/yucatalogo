@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -40,6 +41,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
   const [activeTipo, setActiveTipo] = useState("todos");
   const [search, setSearch] = useState("");
   const [selectedSubfilters, setSelectedSubfilters] = useState<Record<string, string>>({});
+  const [openFiltroId, setOpenFiltroId] = useState<string | null>(null);
   const featuredArte = catalog.artes.find((arte) => arte.midias.length);
   const featuredMedia =
     featuredArte?.midias.find((media) => media.tipo === "imagem") ??
@@ -96,6 +98,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
       ...current,
       [filtroId]: current[filtroId] === subfiltroId ? "" : subfiltroId
     }));
+    setOpenFiltroId(null);
   }
 
   return (
@@ -205,22 +208,38 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
             .filter((filtro) => filtro.subfiltros.length)
             .map((filtro) => (
               <div className="public-filter-group" key={filtro.id}>
-                <span>{filtro.nome}</span>
-                <div className="public-filter-options">
-                  <button
-                    className="public-filter-chip"
-                    data-active={!selectedSubfilters[filtro.id]}
-                    onClick={() =>
-                      setSelectedSubfilters((current) => ({
-                        ...current,
-                        [filtro.id]: ""
-                      }))
-                    }
-                    type="button"
-                  >
-                    Todos
-                  </button>
-                  {filtro.subfiltros.map((subfiltro) => (
+                <button
+                  aria-expanded={openFiltroId === filtro.id}
+                  className="public-filter-toggle"
+                  data-active={Boolean(selectedSubfilters[filtro.id])}
+                  onClick={() =>
+                    setOpenFiltroId((current) =>
+                      current === filtro.id ? null : filtro.id
+                    )
+                  }
+                  type="button"
+                >
+                  <span>{filtro.nome}</span>
+                  <ChevronDown size={16} aria-hidden="true" />
+                </button>
+
+                {openFiltroId === filtro.id ? (
+                  <div className="public-filter-options">
+                    <button
+                      className="public-filter-chip"
+                      data-active={!selectedSubfilters[filtro.id]}
+                      onClick={() => {
+                        setSelectedSubfilters((current) => ({
+                          ...current,
+                          [filtro.id]: ""
+                        }));
+                        setOpenFiltroId(null);
+                      }}
+                      type="button"
+                    >
+                      Todos
+                    </button>
+                    {filtro.subfiltros.map((subfiltro) => (
                     <button
                       className="public-filter-chip"
                       data-active={selectedSubfilters[filtro.id] === subfiltro.id}
@@ -230,8 +249,9 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
                     >
                       {subfiltro.nome}
                     </button>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))}
         </section>
