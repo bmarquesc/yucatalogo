@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Loader2, Save } from "lucide-react";
+import { Copy, Loader2, Palette, Save, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -23,7 +23,18 @@ type ConviteiraForm = {
   bannerMobileUrl: string;
   corPrincipal: string;
   corDestaque: string;
+  corFundo: string;
+  corCard: string;
+  corTexto: string;
   fonteCatalogo: string;
+};
+
+const defaultProfileColors = {
+  corPrincipal: "#0D0D0D",
+  corDestaque: "#C9A96E",
+  corFundo: "#FFFAF6",
+  corCard: "#FFFFFF",
+  corTexto: "#0D0D0D"
 };
 
 const emptyForm: ConviteiraForm = {
@@ -34,10 +45,186 @@ const emptyForm: ConviteiraForm = {
   logoUrl: "",
   bannerUrl: "",
   bannerMobileUrl: "",
-  corPrincipal: "#0D0D0D",
-  corDestaque: "#C9A96E",
+  ...defaultProfileColors,
   fonteCatalogo: DEFAULT_CATALOG_FONT
 };
+
+type Rgb = {
+  r: number;
+  g: number;
+  b: number;
+};
+
+type PaletteColors = Pick<
+  ConviteiraForm,
+  "corPrincipal" | "corDestaque" | "corFundo" | "corCard" | "corTexto"
+>;
+
+function toHex({ r, g, b }: Rgb) {
+  return `#${[r, g, b]
+    .map((value) => Math.max(0, Math.min(255, value)).toString(16).padStart(2, "0"))
+    .join("")}`.toUpperCase();
+}
+
+function hexToRgb(hex: string): Rgb {
+  const normalized = hex.replace("#", "");
+  const value =
+    normalized.length === 3
+      ? normalized
+          .split("")
+          .map((item) => item + item)
+          .join("")
+      : normalized;
+
+  return {
+    r: Number.parseInt(value.slice(0, 2), 16),
+    g: Number.parseInt(value.slice(2, 4), 16),
+    b: Number.parseInt(value.slice(4, 6), 16)
+  };
+}
+
+function mixHex(color: string, target: string, amount: number) {
+  const from = hexToRgb(color);
+  const to = hexToRgb(target);
+
+  return toHex({
+    r: Math.round(from.r + (to.r - from.r) * amount),
+    g: Math.round(from.g + (to.g - from.g) * amount),
+    b: Math.round(from.b + (to.b - from.b) * amount)
+  });
+}
+
+function rgbToHsl({ r, g, b }: Rgb) {
+  const red = r / 255;
+  const green = g / 255;
+  const blue = b / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const lightness = (max + min) / 2;
+
+  if (max === min) {
+    return { hue: 0, saturation: 0, lightness };
+  }
+
+  const delta = max - min;
+  const saturation =
+    lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+  const hue =
+    max === red
+      ? (green - blue) / delta + (green < blue ? 6 : 0)
+      : max === green
+        ? (blue - red) / delta + 2
+        : (red - green) / delta + 4;
+
+  return { hue: hue / 6, saturation, lightness };
+}
+
+function getLuminance(color: Rgb) {
+  const values = [color.r, color.g, color.b].map((channel) => {
+    const value = channel / 255;
+    return value <= 0.03928
+      ? value / 12.92
+      : ((value + 0.055) / 1.055) ** 2.4;
+  });
+
+  return 0.2126 * values[0] + 0.7152 * values[1] + 0.0722 * values[2];
+}
+
+function loadImage(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+}
+
+async function extractPaletteFromImage(src: string): Promise<PaletteColors> {
+  const image = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  const maxSize = 120;
+  const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) {
+    throw new Error("Canvas indisponivel.");
+  }
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+  const buckets = new Map<
+    string,
+    Rgb & { count: number; lightness: number; saturation: number; luminance: number }
+  >();
+
+  for (let index = 0; index < pixels.length; index += 16) {
+    const alpha = pixels[index + 3] / 255;
+    if (alpha < 0.38) continue;
+
+    const rgb = {
+      r: Math.round(pixels[index] * alpha + 255 * (1 - alpha)),
+      g: Math.round(pixels[index + 1] * alpha + 255 * (1 - alpha)),
+      b: Math.round(pixels[index + 2] * alpha + 255 * (1 - alpha))
+    };
+    const hsl = rgbToHsl(rgb);
+
+    if (hsl.lightness > 0.94 && hsl.saturation < 0.16) continue;
+
+    const bucket = {
+      r: Math.min(255, Math.round(rgb.r / 32) * 32),
+      g: Math.min(255, Math.round(rgb.g / 32) * 32),
+      b: Math.min(255, Math.round(rgb.b / 32) * 32)
+    };
+    const key = `${bucket.r}-${bucket.g}-${bucket.b}`;
+    const existing = buckets.get(key);
+
+    if (existing) {
+      existing.count += 1;
+    } else {
+      const bucketHsl = rgbToHsl(bucket);
+      buckets.set(key, {
+        ...bucket,
+        count: 1,
+        lightness: bucketHsl.lightness,
+        saturation: bucketHsl.saturation,
+        luminance: getLuminance(bucket)
+      });
+    }
+  }
+
+  const swatches = Array.from(buckets.values());
+  if (!swatches.length) return defaultProfileColors;
+
+  const primary =
+    [...swatches].sort(
+      (a, b) =>
+        b.count * (1 - b.lightness + 0.22) -
+        a.count * (1 - a.lightness + 0.22)
+    )[0] ?? swatches[0];
+  const accent =
+    [...swatches]
+      .filter((swatch) => swatch.saturation > 0.16 && swatch.lightness > 0.16)
+      .sort(
+        (a, b) =>
+          b.count * (b.saturation + 0.18) * (1 - Math.abs(b.lightness - 0.52)) -
+          a.count * (a.saturation + 0.18) * (1 - Math.abs(a.lightness - 0.52))
+      )[0] ?? primary;
+
+  const primaryHex = toHex(primary);
+  const accentHex = toHex(accent);
+  const backgroundHex = mixHex(accentHex, "#FFFFFF", 0.9);
+
+  return {
+    corPrincipal: primaryHex,
+    corDestaque: accentHex,
+    corFundo: backgroundHex,
+    corCard: mixHex(accentHex, "#FFFFFF", 0.97),
+    corTexto: getLuminance(hexToRgb(backgroundHex)) < 0.45 ? "#FFFFFF" : primaryHex
+  };
+}
 
 export function PerfilClient() {
   const notify = useToast();
@@ -46,6 +233,7 @@ export function PerfilClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [extractingColors, setExtractingColors] = useState(false);
   const [showOnboardingMessage, setShowOnboardingMessage] = useState(false);
   const [fallbackOrigin, setFallbackOrigin] = useState("");
 
@@ -72,8 +260,11 @@ export function PerfilClient() {
       logoUrl: data.conviteira.logoUrl || "",
       bannerUrl: data.conviteira.bannerUrl || "",
       bannerMobileUrl: data.conviteira.bannerMobileUrl || "",
-      corPrincipal: data.conviteira.corPrincipal || "#0D0D0D",
-      corDestaque: data.conviteira.corDestaque || "#C9A96E",
+      corPrincipal: data.conviteira.corPrincipal || defaultProfileColors.corPrincipal,
+      corDestaque: data.conviteira.corDestaque || defaultProfileColors.corDestaque,
+      corFundo: data.conviteira.corFundo || defaultProfileColors.corFundo,
+      corCard: data.conviteira.corCard || defaultProfileColors.corCard,
+      corTexto: data.conviteira.corTexto || defaultProfileColors.corTexto,
       fonteCatalogo: data.conviteira.fonteCatalogo || DEFAULT_CATALOG_FONT
     });
     setLoading(false);
@@ -106,8 +297,47 @@ export function PerfilClient() {
     }
 
     const data = (await response.json()) as { url: string };
+
+    if (field === "logoUrl") {
+      const objectUrl = URL.createObjectURL(file);
+      try {
+        const palette = await extractPaletteFromImage(objectUrl);
+        setForm((current) => ({ ...current, [field]: data.url, ...palette }));
+        notify("Logo enviada e cores ajustadas.");
+        return;
+      } catch {
+        setForm((current) => ({ ...current, [field]: data.url }));
+        notify("Logo enviada. Nao foi possivel ler as cores automaticamente.");
+        return;
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    }
+
     setForm((current) => ({ ...current, [field]: data.url }));
     notify("Arquivo enviado.");
+  }
+
+  async function applyLogoColors() {
+    if (!form.logoUrl) {
+      notify("Envie uma logo primeiro.", "error");
+      return;
+    }
+
+    setExtractingColors(true);
+    try {
+      const palette = await extractPaletteFromImage(form.logoUrl);
+      setForm((current) => ({ ...current, ...palette }));
+      notify("Cores ajustadas pela logo.");
+    } catch {
+      notify("Nao foi possivel ler as cores dessa logo. Envie a logo novamente para aplicar.", "error");
+    } finally {
+      setExtractingColors(false);
+    }
+  }
+
+  function clearImage(field: "logoUrl" | "bannerUrl" | "bannerMobileUrl") {
+    setForm((current) => ({ ...current, [field]: "" }));
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -248,7 +478,7 @@ export function PerfilClient() {
             style={{
               display: "grid",
               gap: 12,
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))"
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))"
             }}
           >
             <label className="field">
@@ -273,6 +503,72 @@ export function PerfilClient() {
                 value={form.corDestaque}
               />
             </label>
+            <label className="field">
+              <span className="form-label">Cor do fundo</span>
+              <input
+                className="input"
+                onChange={(event) =>
+                  setForm({ ...form, corFundo: event.target.value })
+                }
+                type="color"
+                value={form.corFundo}
+              />
+            </label>
+            <label className="field">
+              <span className="form-label">Cor dos cards</span>
+              <input
+                className="input"
+                onChange={(event) =>
+                  setForm({ ...form, corCard: event.target.value })
+                }
+                type="color"
+                value={form.corCard}
+              />
+            </label>
+            <label className="field">
+              <span className="form-label">Cor das letras</span>
+              <input
+                className="input"
+                onChange={(event) =>
+                  setForm({ ...form, corTexto: event.target.value })
+                }
+                type="color"
+                value={form.corTexto}
+              />
+            </label>
+          </div>
+
+          <div
+            style={{
+              alignItems: "center",
+              border: "1px solid var(--rule)",
+              borderRadius: 6,
+              display: "grid",
+              gap: 12,
+              gridTemplateColumns: "auto minmax(0, 1fr) auto",
+              padding: 12
+            }}
+          >
+            <Palette size={20} aria-hidden="true" />
+            <div>
+              <strong>Usar cores da logo</strong>
+              <p style={{ color: "var(--mid)", margin: "4px 0 0" }}>
+                O sistema lê a logo e ajusta as cores do catálogo automaticamente.
+              </p>
+            </div>
+            <button
+              className="button secondary"
+              disabled={!form.logoUrl || extractingColors}
+              onClick={applyLogoColors}
+              type="button"
+            >
+              {extractingColors ? (
+                <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+              ) : (
+                <Palette size={16} aria-hidden="true" />
+              )}
+              Aplicar
+            </button>
           </div>
 
           <div
@@ -282,35 +578,71 @@ export function PerfilClient() {
               gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))"
             }}
           >
-            <UploadZone
-              accept="image/*"
-              label={uploading === "logoUrl" ? "Enviando logo" : "Enviar logo"}
-              onFiles={(files) => {
-                if (files[0]) void uploadProfileFile(files[0], "logoUrl");
-              }}
-            />
-            <UploadZone
-              accept="image/*"
-              hint="Tamanho recomendado: 1080 x 515 px"
-              label={
-                uploading === "bannerUrl" ? "Enviando banner" : "Enviar banner"
-              }
-              onFiles={(files) => {
-                if (files[0]) void uploadProfileFile(files[0], "bannerUrl");
-              }}
-            />
-            <UploadZone
-              accept="image/*"
-              hint="Para celular: 800 x 1300 px"
-              label={
-                uploading === "bannerMobileUrl"
-                  ? "Enviando banner mobile"
-                  : "Enviar banner mobile"
-              }
-              onFiles={(files) => {
-                if (files[0]) void uploadProfileFile(files[0], "bannerMobileUrl");
-              }}
-            />
+            <div style={{ display: "grid", gap: 8 }}>
+              <UploadZone
+                accept="image/*"
+                label={uploading === "logoUrl" ? "Enviando logo" : "Enviar logo"}
+                onFiles={(files) => {
+                  if (files[0]) void uploadProfileFile(files[0], "logoUrl");
+                }}
+              />
+              {form.logoUrl ? (
+                <button
+                  className="button secondary"
+                  onClick={() => clearImage("logoUrl")}
+                  type="button"
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                  Excluir logo
+                </button>
+              ) : null}
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              <UploadZone
+                accept="image/*"
+                hint="Tamanho recomendado: 1080 x 515 px"
+                label={
+                  uploading === "bannerUrl" ? "Enviando banner" : "Enviar banner"
+                }
+                onFiles={(files) => {
+                  if (files[0]) void uploadProfileFile(files[0], "bannerUrl");
+                }}
+              />
+              {form.bannerUrl ? (
+                <button
+                  className="button secondary"
+                  onClick={() => clearImage("bannerUrl")}
+                  type="button"
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                  Excluir banner
+                </button>
+              ) : null}
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              <UploadZone
+                accept="image/*"
+                hint="Para celular: 800 x 1300 px"
+                label={
+                  uploading === "bannerMobileUrl"
+                    ? "Enviando banner mobile"
+                    : "Enviar banner mobile"
+                }
+                onFiles={(files) => {
+                  if (files[0]) void uploadProfileFile(files[0], "bannerMobileUrl");
+                }}
+              />
+              {form.bannerMobileUrl ? (
+                <button
+                  className="button secondary"
+                  onClick={() => clearImage("bannerMobileUrl")}
+                  type="button"
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                  Excluir banner mobile
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <button className="button" disabled={saving} type="submit">
@@ -327,8 +659,9 @@ export function PerfilClient() {
           <p className="page-kicker">Preview</p>
           <div
             style={{
+              background: form.corFundo,
               border: "1px solid var(--rule)",
-              color: form.corPrincipal,
+              color: form.corTexto,
               fontFamily: selectedFont.bodyFamily,
               marginTop: 14,
               overflow: "hidden"
@@ -368,7 +701,7 @@ export function PerfilClient() {
               <div
                 style={{
                   aspectRatio: "400 / 650",
-                  background: "#fff",
+                  background: form.corCard,
                   borderRadius: 8,
                   overflow: "hidden"
                 }}
@@ -382,7 +715,7 @@ export function PerfilClient() {
                 ) : (
                   <span
                     style={{
-                      color: form.corPrincipal,
+                      color: form.corTexto,
                       display: "grid",
                       fontSize: 12,
                       fontWeight: 800,
@@ -441,6 +774,7 @@ export function PerfilClient() {
                 <h2
                   className="font-display"
                   style={{
+                    color: form.corPrincipal,
                     fontFamily: selectedFont.displayFamily,
                     fontSize: 32,
                     lineHeight: 1,
@@ -449,7 +783,7 @@ export function PerfilClient() {
                 >
                   {form.nomeMarca || "Sua marca"}
                 </h2>
-                <p style={{ color: "var(--mid)", margin: "8px 0 0" }}>
+                <p style={{ color: form.corTexto, margin: "8px 0 0" }}>
                   {form.bio || "Bio do catálogo"}
                 </p>
               </div>

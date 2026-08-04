@@ -20,6 +20,9 @@ export async function migrateDatabase() {
       banner_mobile_url TEXT,
       cor_principal TEXT DEFAULT '#0D0D0D',
       cor_destaque TEXT DEFAULT '#C9A96E',
+      cor_fundo TEXT DEFAULT '#FFFAF6',
+      cor_card TEXT DEFAULT '#FFFFFF',
+      cor_texto TEXT DEFAULT '#0D0D0D',
       fonte_catalogo TEXT DEFAULT 'editorial',
       plano_ativo BOOLEAN DEFAULT false,
       criado_em TIMESTAMPTZ DEFAULT NOW()
@@ -44,6 +47,21 @@ export async function migrateDatabase() {
   await db.execute(sql`
     ALTER TABLE conviteiras
     ADD COLUMN IF NOT EXISTS banner_mobile_url TEXT
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE conviteiras
+    ADD COLUMN IF NOT EXISTS cor_fundo TEXT DEFAULT '#FFFAF6'
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE conviteiras
+    ADD COLUMN IF NOT EXISTS cor_card TEXT DEFAULT '#FFFFFF'
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE conviteiras
+    ADD COLUMN IF NOT EXISTS cor_texto TEXT DEFAULT '#0D0D0D'
   `);
 
   await db.execute(sql`

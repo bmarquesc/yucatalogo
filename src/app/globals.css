@@ -988,8 +988,8 @@ button {
 }
 
 .public-shell {
-  background: #fffaf6;
-  color: var(--brand-primary, #0d0d0d);
+  background: var(--catalog-background, #fffaf6);
+  color: var(--catalog-text, var(--brand-primary, #0d0d0d));
   font-family: var(--catalog-font-body, Montserrat, ui-sans-serif, system-ui, sans-serif);
   min-height: 100vh;
   overflow-x: hidden;
@@ -1009,7 +1009,7 @@ button {
 .public-shop-header {
   align-items: center;
   backdrop-filter: blur(18px);
-  background: rgba(255, 255, 255, 0.82);
+  background: color-mix(in srgb, var(--catalog-card, #fff), transparent 18%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   display: grid;
   gap: 10px;
@@ -1147,7 +1147,7 @@ button {
 }
 
 .public-mobile-menu {
-  background: #fffaf6;
+  background: var(--catalog-background, #fffaf6);
   box-shadow: 18px 0 50px rgba(12, 10, 9, 0.22);
   display: grid;
   gap: 18px;
@@ -1173,7 +1173,7 @@ button {
 
 .public-mobile-menu-header button {
   align-items: center;
-  background: #fff;
+  background: var(--catalog-card, #fff);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
   color: var(--brand-primary);
@@ -1200,7 +1200,7 @@ button {
 .public-mobile-menu-option,
 .public-mobile-menu-clear {
   align-items: center;
-  background: #fff;
+  background: var(--catalog-card, #fff);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   color: var(--brand-primary);
@@ -1237,7 +1237,7 @@ button {
 }
 
 .public-hero[data-has-custom-banner="true"] {
-  background: #fffaf6;
+  background: var(--catalog-background, #fffaf6);
   display: block;
   min-height: 0;
   padding: 0;
@@ -1312,7 +1312,7 @@ button {
 
 .public-hero-button {
   align-items: center;
-  background: #fff;
+  background: var(--catalog-card, #fff);
   border-radius: 999px;
   color: var(--brand-primary);
   display: inline-flex;
@@ -1416,7 +1416,7 @@ button {
 }
 
 .public-filter-options {
-  background: #fff;
+  background: var(--catalog-card, #fff);
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 8px;
   box-shadow: 0 18px 42px rgba(28, 20, 13, 0.12);
@@ -1434,7 +1434,7 @@ button {
 }
 
 .public-filter-chip {
-  background: #fffaf6;
+  background: var(--catalog-background, #fffaf6);
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 999px;
   color: var(--brand-primary);
@@ -1475,7 +1475,7 @@ button {
 }
 
 .public-section-title {
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
   font-size: 28px;
   font-weight: 650;
   line-height: 1.02;
@@ -1484,7 +1484,7 @@ button {
 }
 
 .public-tipo-description {
-  color: color-mix(in srgb, var(--brand-primary), transparent 24%);
+  color: color-mix(in srgb, var(--catalog-text, var(--brand-primary)), transparent 24%);
   font-family: var(--catalog-font-body);
   font-size: 15px;
   font-weight: 600;
@@ -1495,10 +1495,10 @@ button {
 
 .public-search,
 .public-input {
-  background: #fff;
+  background: var(--catalog-card, #fff);
   border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 8px;
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
   font-size: 16px;
   min-height: 50px;
   padding: 11px 12px;
@@ -1512,7 +1512,7 @@ button {
 }
 
 .public-search-icon {
-  color: color-mix(in srgb, var(--brand-primary), transparent 44%);
+  color: color-mix(in srgb, var(--catalog-text, var(--brand-primary)), transparent 44%);
   left: 13px;
   pointer-events: none;
   position: absolute;
@@ -1532,11 +1532,11 @@ button {
 }
 
 .public-art-card {
-  background: #fff;
+  background: var(--catalog-card, #fff);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
   box-shadow: 0 12px 30px rgba(28, 20, 13, 0.07);
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
   min-width: 0;
   overflow: hidden;
 }
@@ -1591,7 +1591,7 @@ button {
 
 .public-art-type,
 .public-art-theme {
-  color: color-mix(in srgb, var(--brand-primary), transparent 44%);
+  color: color-mix(in srgb, var(--catalog-text, var(--brand-primary)), transparent 44%);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.25;
@@ -1602,7 +1602,7 @@ button {
 }
 
 .public-art-name {
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
   font-family: var(--catalog-font-display);
   font-size: 16px;
   font-weight: 600;
@@ -1611,7 +1611,7 @@ button {
 }
 
 .public-art-price {
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
   font-size: 15px;
   font-weight: 800;
   line-height: 1.25;
@@ -1633,7 +1633,7 @@ button {
 
 .public-empty {
   border: 1px solid rgba(0, 0, 0, 0.1);
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
   padding: 28px;
   text-align: center;
 }
@@ -1672,7 +1672,7 @@ button {
 }
 
 .public-back-link {
-  color: color-mix(in srgb, var(--brand-primary), transparent 20%);
+  color: color-mix(in srgb, var(--catalog-text, var(--brand-primary)), transparent 20%);
   display: inline-flex;
   font-size: 13px;
   font-weight: 800;
@@ -1740,7 +1740,7 @@ button {
 
 .public-product-info {
   align-content: start;
-  background: #fff;
+  background: var(--catalog-card, #fff);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;
   display: grid;
@@ -1749,7 +1749,7 @@ button {
 }
 
 .public-product-title {
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
   font-size: 34px;
   font-weight: 650;
   line-height: 1;
@@ -1758,7 +1758,7 @@ button {
 }
 
 .public-product-description {
-  color: color-mix(in srgb, var(--brand-primary), transparent 28%);
+  color: color-mix(in srgb, var(--catalog-text, var(--brand-primary)), transparent 28%);
   font-size: 15px;
   font-weight: 600;
   line-height: 1.6;
@@ -1781,14 +1781,14 @@ button {
 }
 
 .public-product-meta dt {
-  color: color-mix(in srgb, var(--brand-primary), transparent 45%);
+  color: color-mix(in srgb, var(--catalog-text, var(--brand-primary)), transparent 45%);
   font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
 }
 
 .public-product-meta dd {
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
   font-size: 14px;
   font-weight: 700;
   line-height: 1.4;
@@ -1803,8 +1803,8 @@ button {
 }
 
 .showroom-dialog {
-  background: #fff;
-  color: var(--brand-primary);
+  background: var(--catalog-card, #fff);
+  color: var(--catalog-text, var(--brand-primary));
   display: grid;
   height: 100dvh;
   margin-left: auto;
@@ -1967,7 +1967,7 @@ button {
 
 .showroom-kicker,
 .public-field-label {
-  color: color-mix(in srgb, var(--brand-primary), transparent 42%);
+  color: color-mix(in srgb, var(--catalog-text, var(--brand-primary)), transparent 42%);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
@@ -1987,7 +1987,7 @@ button {
 }
 
 .showroom-price {
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
   font-size: 18px;
   font-weight: 800;
   line-height: 1.2;
@@ -2017,7 +2017,7 @@ button {
 
 .public-service-option {
   border-color: rgba(0, 0, 0, 0.12);
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
 }
 
 .public-order-popup-backdrop {
@@ -2032,9 +2032,9 @@ button {
 }
 
 .public-order-popup {
-  background: #fff;
+  background: var(--catalog-card, #fff);
   border-radius: 8px;
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
   display: grid;
   gap: 16px;
   max-height: min(92dvh, 760px);
@@ -2051,7 +2051,7 @@ button {
 }
 
 .public-order-popup-title {
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
   font-family: var(--catalog-font-display);
   font-size: 30px;
   font-weight: 500;
@@ -2091,7 +2091,7 @@ button {
 .public-action-secondary {
   background: transparent;
   border: 1px solid rgba(0, 0, 0, 0.14);
-  color: var(--brand-primary);
+  color: var(--catalog-text, var(--brand-primary));
 }
 
 .public-order-error {

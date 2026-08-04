@@ -25,6 +25,9 @@ export const conviteiras = pgTable("conviteiras", {
   bannerMobileUrl: text("banner_mobile_url"),
   corPrincipal: text("cor_principal").default("#0D0D0D"),
   corDestaque: text("cor_destaque").default("#C9A96E"),
+  corFundo: text("cor_fundo").default("#FFFAF6"),
+  corCard: text("cor_card").default("#FFFFFF"),
+  corTexto: text("cor_texto").default("#0D0D0D"),
   fonteCatalogo: text("fonte_catalogo").default("editorial"),
   planoAtivo: boolean("plano_ativo").default(false),
   criadoEm: timestamp("criado_em", { withTimezone: true }).defaultNow()

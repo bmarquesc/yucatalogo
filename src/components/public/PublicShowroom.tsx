@@ -98,6 +98,10 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
   const shellStyle = {
     "--brand-primary": catalog.conviteira.corPrincipal || "#0D0D0D",
     "--brand-accent": catalog.conviteira.corDestaque || "#C9A96E",
+    "--catalog-background": catalog.conviteira.corFundo || "#FFFAF6",
+    "--catalog-card": catalog.conviteira.corCard || "#FFFFFF",
+    "--catalog-text":
+      catalog.conviteira.corTexto || catalog.conviteira.corPrincipal || "#0D0D0D",
     "--catalog-font-body": selectedFont.bodyFamily,
     "--catalog-font-display": selectedFont.displayFamily,
     "--public-hero-image-fit": "cover"
@@ -484,6 +488,10 @@ export function PublicInvitationDetail({
   const shellStyle = {
     "--brand-primary": catalog.conviteira.corPrincipal || "#0D0D0D",
     "--brand-accent": catalog.conviteira.corDestaque || "#C9A96E",
+    "--catalog-background": catalog.conviteira.corFundo || "#FFFAF6",
+    "--catalog-card": catalog.conviteira.corCard || "#FFFFFF",
+    "--catalog-text":
+      catalog.conviteira.corTexto || catalog.conviteira.corPrincipal || "#0D0D0D",
     "--catalog-font-body": selectedFont.bodyFamily,
     "--catalog-font-display": selectedFont.displayFamily
   } as CSSProperties;

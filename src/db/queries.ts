@@ -338,6 +338,9 @@ export async function duplicateConviteiraForUser(input: {
         bannerMobileUrl: source.bannerMobileUrl,
         corPrincipal: source.corPrincipal,
         corDestaque: source.corDestaque,
+        corFundo: source.corFundo,
+        corCard: source.corCard,
+        corTexto: source.corTexto,
         fonteCatalogo: source.fonteCatalogo,
         planoAtivo: source.planoAtivo
       })
@@ -459,6 +462,9 @@ export async function updateConviteira(
     bannerMobileUrl?: string | null;
     corPrincipal?: string;
     corDestaque?: string;
+    corFundo?: string;
+    corCard?: string;
+    corTexto?: string;
     fonteCatalogo?: string;
   }
 ) {
@@ -472,6 +478,9 @@ export async function updateConviteira(
     bannerMobileUrl: input.bannerMobileUrl,
     corPrincipal: input.corPrincipal,
     corDestaque: input.corDestaque,
+    corFundo: input.corFundo,
+    corCard: input.corCard,
+    corTexto: input.corTexto,
     fonteCatalogo: input.fonteCatalogo
   };
 
@@ -844,6 +853,9 @@ export async function getPublicCatalog(slug: string): Promise<PublicCatalog | nu
       bannerMobileUrl: conviteira.bannerMobileUrl,
       corPrincipal: conviteira.corPrincipal,
       corDestaque: conviteira.corDestaque,
+      corFundo: conviteira.corFundo,
+      corCard: conviteira.corCard,
+      corTexto: conviteira.corTexto,
       fonteCatalogo: conviteira.fonteCatalogo
     },
     tipos: tipoRows.map(toCatalogTipo),

@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS conviteiras (
   banner_mobile_url TEXT,
   cor_principal TEXT DEFAULT '#0D0D0D',
   cor_destaque TEXT DEFAULT '#C9A96E',
+  cor_fundo TEXT DEFAULT '#FFFAF6',
+  cor_card TEXT DEFAULT '#FFFFFF',
+  cor_texto TEXT DEFAULT '#0D0D0D',
   fonte_catalogo TEXT DEFAULT 'editorial',
   plano_ativo BOOLEAN DEFAULT false,
   criado_em TIMESTAMPTZ DEFAULT NOW()

@@ -89,6 +89,9 @@ export type PublicCatalog = {
     bannerMobileUrl: string | null;
     corPrincipal: string | null;
     corDestaque: string | null;
+    corFundo: string | null;
+    corCard: string | null;
+    corTexto: string | null;
     fonteCatalogo: string | null;
   };
   tipos: CatalogTipo[];

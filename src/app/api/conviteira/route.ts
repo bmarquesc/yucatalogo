@@ -18,6 +18,9 @@ type ConviteiraPayload = {
   bannerMobileUrl?: string | null;
   corPrincipal?: string;
   corDestaque?: string;
+  corFundo?: string;
+  corCard?: string;
+  corTexto?: string;
   fonteCatalogo?: string;
 };
 
@@ -48,11 +51,15 @@ export async function PUT(request: Request) {
       slug: body.slug ? slugify(body.slug) : undefined,
       bio: body.bio ?? undefined,
       whatsapp: body.whatsapp ? sanitizeWhatsApp(body.whatsapp) : undefined,
-      logoUrl: body.logoUrl ?? undefined,
-      bannerUrl: body.bannerUrl ?? undefined,
-      bannerMobileUrl: body.bannerMobileUrl ?? undefined,
+      logoUrl: body.logoUrl === undefined ? undefined : body.logoUrl || null,
+      bannerUrl: body.bannerUrl === undefined ? undefined : body.bannerUrl || null,
+      bannerMobileUrl:
+        body.bannerMobileUrl === undefined ? undefined : body.bannerMobileUrl || null,
       corPrincipal: body.corPrincipal,
       corDestaque: body.corDestaque,
+      corFundo: body.corFundo,
+      corCard: body.corCard,
+      corTexto: body.corTexto,
       fonteCatalogo: body.fonteCatalogo
     });
 
