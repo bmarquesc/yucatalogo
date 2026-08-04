@@ -285,6 +285,7 @@ export function PerfilClient() {
             />
             <UploadZone
               accept="image/*"
+              hint="Tamanho recomendado: 1920 x 720 px"
               label={
                 uploading === "bannerUrl" ? "Enviando banner" : "Enviar banner"
               }
@@ -317,7 +318,7 @@ export function PerfilClient() {
           >
             <div
               style={{
-                aspectRatio: "16 / 7",
+                aspectRatio: "8 / 3",
                 background: form.corDestaque,
                 display: "grid",
                 overflow: "hidden",
@@ -328,10 +329,12 @@ export function PerfilClient() {
                 <img
                   alt=""
                   src={form.bannerUrl}
-                  style={{ height: "100%", objectFit: "cover", width: "100%" }}
+                  style={{ height: "100%", objectFit: "contain", width: "100%" }}
                 />
               ) : (
-                <span style={{ color: "#fff", fontWeight: 700 }}>Banner</span>
+                <span style={{ color: "#fff", fontWeight: 700 }}>
+                  Banner 1920 x 720 px
+                </span>
               )}
             </div>
             <div style={{ display: "flex", gap: 14, padding: 18 }}>

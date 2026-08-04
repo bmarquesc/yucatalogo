@@ -88,7 +88,8 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
     "--brand-primary": catalog.conviteira.corPrincipal || "#0D0D0D",
     "--brand-accent": catalog.conviteira.corDestaque || "#C9A96E",
     "--catalog-font-body": selectedFont.bodyFamily,
-    "--catalog-font-display": selectedFont.displayFamily
+    "--catalog-font-display": selectedFont.displayFamily,
+    "--public-hero-image-fit": catalog.conviteira.bannerUrl ? "contain" : "cover"
   } as CSSProperties;
 
   function selectSubfilter(filtroId: string, subfiltroId: string) {
@@ -121,21 +122,6 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
           <a className="public-hero-button" href="#catalogo">
             Conhecer modelos
           </a>
-        </div>
-      </section>
-
-      <section className="public-feature-strip" id="colecoes">
-        <div>
-          <strong>Personalizado</strong>
-          <span>Dados do evento feitos sob medida.</span>
-        </div>
-        <div>
-          <strong>Digital</strong>
-          <span>Pronto para compartilhar no WhatsApp.</span>
-        </div>
-        <div>
-          <strong>Com extras</strong>
-          <span>Filtros, lista, confirmação e mascote.</span>
         </div>
       </section>
 
@@ -292,7 +278,7 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
                       {priceLabel ? (
                         <span className="public-art-price">{priceLabel}</span>
                       ) : null}
-                      <span className="public-art-cta">Quero esse convite</span>
+                      <span className="public-art-cta">Ver convite</span>
                     </span>
                   </a>
                 </article>

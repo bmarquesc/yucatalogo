@@ -5,11 +5,13 @@ import { useRef } from "react";
 
 export function UploadZone({
   accept,
+  hint,
   label,
   multiple = false,
   onFiles
 }: {
   accept: string;
+  hint?: string;
   label: string;
   multiple?: boolean;
   onFiles: (files: File[]) => void;
@@ -31,7 +33,20 @@ export function UploadZone({
       type="button"
     >
       <Upload size={19} aria-hidden="true" />
-      <span>{label}</span>
+      <span
+        style={{
+          display: "grid",
+          gap: 4,
+          textAlign: "left"
+        }}
+      >
+        <span>{label}</span>
+        {hint ? (
+          <small style={{ color: "var(--mid)", fontSize: 12, fontWeight: 600 }}>
+            {hint}
+          </small>
+        ) : null}
+      </span>
       <input
         accept={accept}
         hidden

@@ -1087,7 +1087,8 @@ button {
     var(--public-hero-image),
     linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-primary), #fff 74%));
   background-position: center;
-  background-size: cover;
+  background-repeat: no-repeat;
+  background-size: cover, var(--public-hero-image-fit, cover), cover;
   display: flex;
   min-height: clamp(440px, 72vh, 690px);
   padding: clamp(48px, 12vw, 118px) clamp(18px, 7vw, 92px);
@@ -1145,35 +1146,6 @@ button {
   min-height: 48px;
   padding: 0 22px;
   text-transform: uppercase;
-}
-
-.public-feature-strip {
-  background: #fff;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  display: grid;
-  gap: 1px;
-  grid-template-columns: 1fr;
-  margin: 0 auto;
-  max-width: 1200px;
-}
-
-.public-feature-strip div {
-  display: grid;
-  gap: 5px;
-  padding: 18px clamp(16px, 4vw, 28px);
-}
-
-.public-feature-strip strong {
-  color: var(--brand-primary);
-  font-size: 14px;
-  text-transform: uppercase;
-}
-
-.public-feature-strip span {
-  color: color-mix(in srgb, var(--brand-primary), transparent 38%);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.45;
 }
 
 .public-tabs {
@@ -2474,10 +2446,6 @@ button {
 
   .public-hero-copy {
     max-width: 680px;
-  }
-
-  .public-feature-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .public-hero-title {
