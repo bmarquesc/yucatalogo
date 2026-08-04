@@ -330,28 +330,19 @@ export function PublicShowroom({ catalog }: { catalog: PublicCatalog }) {
         }
       >
         {hasCustomBanner ? (
-          <>
-            <picture className="public-hero-picture">
-              {catalog.conviteira.bannerMobileUrl ? (
-                <source
-                  media="(max-width: 768px)"
-                  srcSet={catalog.conviteira.bannerMobileUrl}
-                />
-              ) : null}
-              <img
-                alt={`Banner ${catalog.conviteira.nomeMarca}`}
-                className="public-hero-banner"
-                src={catalog.conviteira.bannerUrl || catalog.conviteira.bannerMobileUrl || ""}
-              />
-            </picture>
-            {catalog.conviteira.logoUrl ? (
-              <img
-                alt={`Logo ${catalog.conviteira.nomeMarca}`}
-                className="public-hero-logo"
-                src={catalog.conviteira.logoUrl}
+          <picture className="public-hero-picture">
+            {catalog.conviteira.bannerMobileUrl ? (
+              <source
+                media="(max-width: 768px)"
+                srcSet={catalog.conviteira.bannerMobileUrl}
               />
             ) : null}
-          </>
+            <img
+              alt={`Banner ${catalog.conviteira.nomeMarca}`}
+              className="public-hero-banner"
+              src={catalog.conviteira.bannerUrl || catalog.conviteira.bannerMobileUrl || ""}
+            />
+          </picture>
         ) : (
           <div className="public-hero-copy">
             <p className="public-hero-kicker">Catálogo digital</p>

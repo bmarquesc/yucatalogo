@@ -993,6 +993,7 @@ button {
   font-family: var(--catalog-font-body, Montserrat, ui-sans-serif, system-ui, sans-serif);
   min-height: 100vh;
   overflow-x: hidden;
+  padding-top: 74px;
 }
 
 .public-announcement {
@@ -1013,9 +1014,11 @@ button {
   display: grid;
   gap: 10px;
   grid-template-columns: 48px minmax(0, 1fr) 48px;
+  left: 0;
   min-height: 74px;
   padding: 10px clamp(12px, 4vw, 48px);
-  position: sticky;
+  position: fixed;
+  right: 0;
   top: 0;
   z-index: 75;
 }
@@ -1094,6 +1097,27 @@ button {
 .public-shop-nav-button[data-active="true"],
 .public-shop-nav-button:hover {
   color: var(--brand-primary);
+}
+
+.public-header-filter {
+  align-self: center;
+  position: relative;
+}
+
+.public-header-filter .public-filter-options {
+  left: 50%;
+  position: absolute;
+  top: calc(100% + 12px);
+  transform: translateX(-50%);
+  z-index: 90;
+}
+
+.public-shop-filter-button[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.public-shop-filter-button svg {
+  transition: transform 160ms ease;
 }
 
 .public-mobile-menu-button,
@@ -2674,6 +2698,7 @@ button {
     align-items: center;
     display: flex;
     justify-self: center;
+    overflow: visible;
   }
 
   .public-shop-search-button {
