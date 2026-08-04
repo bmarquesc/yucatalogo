@@ -1111,12 +1111,16 @@ button {
 }
 
 .public-hero-logo {
-  height: clamp(50px, 15vw, 104px);
+  background: #fff;
+  border: 3px solid rgba(255, 255, 255, 0.88);
+  border-radius: 50%;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  height: clamp(68px, 19vw, 132px);
   left: clamp(12px, 4vw, 52px);
-  object-fit: contain;
+  object-fit: cover;
   position: absolute;
   top: clamp(10px, 3vw, 32px);
-  width: clamp(50px, 15vw, 104px);
+  width: clamp(68px, 19vw, 132px);
   z-index: 2;
 }
 
